@@ -72,6 +72,28 @@ export default function MapPreview({
     ? 0 
     : (autoStrokeWidth !== null ? Math.min(userStroke, autoStrokeWidth) : userStroke);
 
+  // Generate stable random network arcs for the Abstract Global Network style
+  const networkLines = useMemo(() => {
+    if (!styleConfig.isNetwork || !geoData) return [];
+    const lines = [];
+    const seed = countryName.length || 5;
+    const stableRandom = (i) => Math.abs(Math.sin(seed * 100 + i));
+    
+    // We create arcs that span across the main map area
+    for (let i = 0; i < 20; i++) {
+        const x1 = 50 + stableRandom(i*1) * (dimensions.width - 100);
+        const y1 = 50 + stableRandom(i*2) * (dimensions.height - 100);
+        const x2 = 50 + stableRandom(i*3) * (dimensions.width - 100);
+        const y2 = 50 + stableRandom(i*4) * (dimensions.height - 100);
+        // Curve control point
+        const cx = (x1 + x2) / 2 + (stableRandom(i*5) - 0.5) * 600;
+        const cy = (y1 + y2) / 2 + (stableRandom(i*6) - 0.5) * 600;
+        
+        lines.push({ x1, y1, x2, y2, cx, cy });
+    }
+    return lines;
+  }, [styleConfig.isNetwork, geoData, dimensions, countryName]);
+
   // SVG Defs
   const defs = (
     <defs>
@@ -238,6 +260,32 @@ export default function MapPreview({
               );
             })}
           </g>
+
+          {/* Abstract Global Network Overlay */}
+          {styleConfig.isNetwork && (
+            <g id="network-overlay" className="pointer-events-none" style={{ filter: styleConfig.glow ? 'url(#neonGlow)' : 'none' }}>
+              {networkLines.map((line, i) => {
+                const color = colors[i % colors.length];
+                return (
+                  <g key={`net-${i}`}>
+                    {/* Sweeping Orbital Path */}
+                    <path
+                      d={`M ${line.x1} ${line.y1} Q ${line.cx} ${line.cy} ${line.x2} ${line.y2}`}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth="1"
+                      opacity="0.3"
+                    />
+                    {/* Glowing Source Node */}
+                    <circle cx={line.x1} cy={line.y1} r={dotSize * 1.2} fill={color} opacity="0.8" />
+                    {/* Glowing Target Node (Concentric) */}
+                    <circle cx={line.x2} cy={line.y2} r={dotSize * 2.5} fill="none" stroke={color} strokeWidth="1" opacity="0.6" />
+                    <circle cx={line.x2} cy={line.y2} r={dotSize * 0.8} fill={color} />
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* Map Title Overlay */}
           {showTitle && countryName && (

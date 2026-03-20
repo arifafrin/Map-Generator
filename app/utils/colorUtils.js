@@ -187,7 +187,42 @@ export const mapStyles = {
     isDotted: true,
     regionColors: ['#000000'],
   },
+  network: {
+    id: 'network', name: 'Abstract Global Network', icon: '🌐',
+    background: '#040b16',
+    stroke: 'none', strokeWidth: 0,
+    fontColor: '#ffffff', fontFamily: 'Courier New, monospace',
+    isDotted: true,
+    isNetwork: true,
+    regionColors: ['#ff4500', '#ff6a00', '#ff8c00', '#ffa500', '#ff7f50', '#ffb380'],
+  },
 };
+
+// Generates a 6-step color palette blending from a base hex towards a bright glow
+export function generateMonochromaticPalette(baseHex, count = 6) {
+  if (!baseHex || !baseHex.startsWith('#')) return Array(count).fill('#ffffff');
+  const hex = baseHex.replace('#', '');
+  if (hex.length !== 6) return Array(count).fill(baseHex);
+  
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    // Interpolate from base color (factor 0) to bright glow (factor 0.8)
+    const factor = (i / (count - 1)) * 0.8;
+    const newR = Math.round(r + (255 - r) * factor);
+    const newG = Math.round(g + (255 - g) * factor);
+    const newB = Math.round(b + (255 - b) * factor);
+    const toHex = (n) => {
+        const h = Math.max(0, Math.min(255, n)).toString(16);
+        return h.length === 1 ? '0' + h : h;
+    };
+    colors.push(`#${toHex(newR)}${toHex(newG)}${toHex(newB)}`);
+  }
+  return colors;
+}
 
 // Advanced Random Palette Generator natively returning HSL values as robust HEX
 function hslToHex(h, s, l) {

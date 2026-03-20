@@ -70,7 +70,7 @@ export default function Home() {
     const genericStyles = ['colorful', 'minimal', 'poster'];
     const isGenericStyle = genericStyles.includes(selectedStyle);
     
-    if (colorMode !== 'custom' && colorMode !== 'random' && !colorMode.startsWith('theme-')) {
+    if (colorMode !== 'custom' && colorMode !== 'random' && colorMode !== 'blend' && !colorMode.startsWith('theme-')) {
       if (colorMode === 'auto' && isGenericStyle && countryPalettes[selectedCountry]) {
         setColors([...countryPalettes[selectedCountry].colors]);
       } else {

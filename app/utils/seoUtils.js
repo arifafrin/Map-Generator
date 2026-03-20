@@ -80,6 +80,9 @@ export function generateStockKeywords(countryName, countryIso, styleConfig, layo
   if (styleConfig.id === 'dotted' || styleConfig.id === 'dotshape') {
     initialPool.push('dotted', 'dots', 'halftone', 'stipple', 'pattern', 'pointillism', 'infographic', 'data', 'visualization');
   }
+  if (styleConfig.id === 'network') {
+    initialPool.push('network', 'global', 'technology', 'connection', 'internet', 'communication', 'cyber', 'nodes', 'orbital', 'tech', 'digital', 'data');
+  }
   
   const finalKeywords = cleanAndFormatKeywords(initialPool, 50);
   return finalKeywords.join(', ');
@@ -121,6 +124,9 @@ export function generateStockTitle(countryName, styleConfig) {
   }
   if (styleConfig.id === 'dotshape') {
     return `${countryName} Dot Shape Silhouette Map - Pure Halftone Pointillism Vector`;
+  }
+  if (styleConfig.id === 'network') {
+    return `${countryName} Abstract Global Tech Network Map - Digital Connection Vector`;
   }
   
   return `${baseTitle} - High Quality Colorful Graphic Blank Template`;

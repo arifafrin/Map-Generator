@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { countryPalettes, aiColorThemes, generateRandomPalette } from '../utils/colorUtils';
+import { countryPalettes, aiColorThemes, generateRandomPalette, generateMonochromaticPalette } from '../utils/colorUtils';
 
 export default function ColorControls({ selectedCountry, colors, onColorsChange, colorMode, onColorModeChange }) {
 
@@ -21,6 +21,11 @@ export default function ColorControls({ selectedCountry, colors, onColorsChange,
   const handleRandomColors = () => {
     onColorModeChange('random');
     onColorsChange(generateRandomPalette(9)); // Updated to 9 color slots to ensure coverage
+  };
+
+  const handleBaseColorBlend = (baseHex) => {
+    onColorModeChange('blend');
+    onColorsChange(generateMonochromaticPalette(baseHex, 10)); // Generate 10 blended shades
   };
 
   const handleColorChange = (index, newColor) => {
@@ -60,6 +65,23 @@ export default function ColorControls({ selectedCountry, colors, onColorsChange,
         >
           🎲 Random HSL
         </button>
+      </div>
+
+      {/* Smart Blend Control */}
+      <div className="flex items-center justify-between p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 mb-3 shadow-[0_0_15px_rgba(99,102,241,0.1)]">
+        <div>
+           <span className="text-xs font-bold text-indigo-400 block">Single Color Blend</span>
+           <span className="text-[9px] text-indigo-500/70">Pick a base color, we generate 10 shades</span>
+        </div>
+        <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-indigo-400 shadow-md">
+          <input
+            type="color"
+            value={colorMode === 'blend' ? (colors[0] || '#ff4500') : '#ff4500'}
+            onChange={(e) => handleBaseColorBlend(e.target.value)}
+            className="absolute -inset-4 w-16 h-16 cursor-pointer"
+            title="Pick a Base Seed Color"
+          />
+        </div>
       </div>
 
       {/* AI Theme Presets */}
