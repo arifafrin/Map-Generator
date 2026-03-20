@@ -206,6 +206,10 @@ export default function Home() {
                   stockMode={stockMode} setStockMode={setStockMode}
                   includeIslands={includeIslands} setIncludeIslands={setIncludeIslands}
                   dotSize={dotSize} setDotSize={setDotSize}
+                  networkNodeCount={networkNodeCount} setNetworkNodeCount={setNetworkNodeCount}
+                  networkLineCount={networkLineCount} setNetworkLineCount={setNetworkLineCount}
+                  isDrawingNetwork={isDrawingNetwork} setIsDrawingNetwork={setIsDrawingNetwork}
+                  setNetworkBounds={setNetworkBounds}
                   selectedStyle={selectedStyle}
                 />
               )}
@@ -296,6 +300,12 @@ export default function Home() {
                   stockMode={stockMode}
                   includeIslands={includeIslands}
                   dotSize={dotSize}
+                  networkNodeCount={networkNodeCount}
+                  networkLineCount={networkLineCount}
+                  isDrawingNetwork={isDrawingNetwork}
+                  setIsDrawingNetwork={setIsDrawingNetwork}
+                  networkBounds={networkBounds}
+                  setNetworkBounds={setNetworkBounds}
                 />
              </div>
           ) : null}

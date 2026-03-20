@@ -129,26 +129,36 @@ export default function MapPreview({
     return lines;
   }, [styleConfig.isNetwork, networkNodesArray, networkLineCount, countryName]);
 
-  // Handle Interactive Drawing
-  const handlePointerDown = (e) => {
+  // Handle Interactive Drawing via explicit overlay rect
+  const handleDrawStart = (e) => {
     if (!isDrawingNetwork || !svgRef.current) return;
+    
+    // Support touching and clicking
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
     const pt = svgRef.current.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
+    pt.x = clientX;
+    pt.y = clientY;
     const loc = pt.matrixTransform(svgRef.current.getScreenCTM().inverse());
     setDragStart({ x: loc.x, y: loc.y });
     setCurrentDragBounds({ x: loc.x, y: loc.y, w: 0, h: 0 });
-    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const handlePointerMove = (e) => {
+  const handleDrawMove = (e) => {
     if (!isDrawingNetwork || !dragStart || !svgRef.current) return;
+    
+    // Prevent scrolling on touch devices while drawing
+    if (e.cancelable) e.preventDefault();
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
     const pt = svgRef.current.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
+    pt.x = clientX;
+    pt.y = clientY;
     const loc = pt.matrixTransform(svgRef.current.getScreenCTM().inverse());
     
-    // Allow dragging backwards (negative width/height compensation)
     setCurrentDragBounds({
       x: Math.min(dragStart.x, loc.x),
       y: Math.min(dragStart.y, loc.y),
@@ -157,7 +167,7 @@ export default function MapPreview({
     });
   };
 
-  const handlePointerUp = (e) => {
+  const handleDrawEnd = (e) => {
     if (!isDrawingNetwork || !dragStart || !currentDragBounds) return;
     if (currentDragBounds.w > 20 && currentDragBounds.h > 20) {
       if (setNetworkBounds) setNetworkBounds(currentDragBounds);
@@ -165,7 +175,6 @@ export default function MapPreview({
     }
     setDragStart(null);
     setCurrentDragBounds(null);
-    e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
   // SVG Defs
@@ -310,13 +319,7 @@ export default function MapPreview({
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           xmlns="http://www.w3.org/2000/svg"
           className="max-w-full max-h-full transition-all duration-500 origin-center"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          style={{ 
-            background: backgroundColor,
-            cursor: isDrawingNetwork ? 'crosshair' : 'default'
-          }}
+          style={{ background: backgroundColor }}
         >
           {defs}
           
@@ -340,6 +343,23 @@ export default function MapPreview({
               );
             })}
           </g>
+
+          {/* Interactive Drawing Hit Box */}
+          {styleConfig.isNetwork && isDrawingNetwork && (
+            <rect 
+              width={dimensions.width} 
+              height={dimensions.height} 
+              fill="transparent"
+              style={{ cursor: 'crosshair', touchAction: 'none' }}
+              onMouseDown={handleDrawStart}
+              onMouseMove={handleDrawMove}
+              onMouseUp={handleDrawEnd}
+              onMouseLeave={handleDrawEnd}
+              onTouchStart={handleDrawStart}
+              onTouchMove={handleDrawMove}
+              onTouchEnd={handleDrawEnd}
+            />
+          )}
 
           {/* Abstract Global Network Overlay */}
           {styleConfig.isNetwork && (
