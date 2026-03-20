@@ -33,7 +33,7 @@ export default function MapPreview({
   
   // Interactive Drawing State
   const [dragStart, setDragStart] = useState(null);
-  const [currentDragBounds, setCurrentDragBounds] = useState(null);
+  const [currentDrawPath, setCurrentDrawPath] = useState(null); // Array of {x, y} points
   
   const dimensions = useMemo(() => {
     switch(layout) {
@@ -82,6 +82,18 @@ export default function MapPreview({
     ? 0 
     : (autoStrokeWidth !== null ? Math.min(userStroke, autoStrokeWidth) : userStroke);
 
+  // Ray-Casting Algorithm to test if a point is inside an arbitrary polygon
+  const isPointInPolygon = (x, y, polygon) => {
+    let isInside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i].x, yi = polygon[i].y;
+        const xj = polygon[j].x, yj = polygon[j].y;
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) isInside = !isInside;
+    }
+    return isInside;
+  };
+
   // Generate random network nodes constrained to the active bounds
   const networkNodesArray = useMemo(() => {
     if (!styleConfig.isNetwork || !geoData) return [];
@@ -89,20 +101,32 @@ export default function MapPreview({
     const seed = countryName.length || 5;
     const stableRandom = (i) => Math.abs(Math.sin(seed * 100 + i));
     
-    // Determine bounds
-    let bx = 50, by = 50, bw = dimensions.width - 100, bh = dimensions.height - 100;
-    if (networkBounds) {
-      bx = networkBounds.x;
-      by = networkBounds.y;
-      bw = networkBounds.w;
-      bh = networkBounds.h;
+    // Determine boundary area
+    let minX = 50, minY = 50, maxX = dimensions.width - 100, maxY = dimensions.height - 100;
+    const hasCustomBounds = networkBounds && Array.isArray(networkBounds) && networkBounds.length > 2;
+
+    if (hasCustomBounds) {
+      minX = Math.min(...networkBounds.map(p => p.x));
+      maxX = Math.max(...networkBounds.map(p => p.x));
+      minY = Math.min(...networkBounds.map(p => p.y));
+      maxY = Math.max(...networkBounds.map(p => p.y));
     }
 
-    // Distribute nodes within the bounding box
-    for (let i = 0; i < networkNodeCount; i++) {
-        const x = bx + stableRandom(i*1) * bw;
-        const y = by + stableRandom(i*2) * bh;
-        nodes.push({ x, y, id: i });
+    // Distribute nodes within the bounding box (and precisely inside the polygon if custom)
+    let attempts = 0;
+    let nodeCount = 0;
+    while (nodeCount < networkNodeCount && attempts < networkNodeCount * 100) {
+        // We use attempts as the stable hash seed so the points don't stack up infinitely if rejected
+        const x = minX + stableRandom(attempts*1) * (maxX - minX);
+        const y = minY + stableRandom(attempts*2) * (maxY - minY);
+        attempts++;
+
+        if (hasCustomBounds && !isPointInPolygon(x, y, networkBounds)) {
+            continue; // Node fell outside the user's hand-drawn lasso
+        }
+
+        nodes.push({ x, y, id: nodeCount });
+        nodeCount++;
     }
     return nodes;
   }, [styleConfig.isNetwork, geoData, dimensions, countryName, networkBounds, networkNodeCount]);
@@ -142,11 +166,11 @@ export default function MapPreview({
     pt.y = clientY;
     const loc = pt.matrixTransform(svgRef.current.getScreenCTM().inverse());
     setDragStart({ x: loc.x, y: loc.y });
-    setCurrentDragBounds({ x: loc.x, y: loc.y, w: 0, h: 0 });
+    setCurrentDrawPath([{ x: loc.x, y: loc.y }]); // Initialize new lasso path
   };
 
   const handleDrawMove = (e) => {
-    if (!isDrawingNetwork || !dragStart || !svgRef.current) return;
+    if (!isDrawingNetwork || !dragStart || !svgRef.current || !currentDrawPath) return;
     
     // Prevent scrolling on touch devices while drawing
     if (e.cancelable) e.preventDefault();
@@ -159,22 +183,30 @@ export default function MapPreview({
     pt.y = clientY;
     const loc = pt.matrixTransform(svgRef.current.getScreenCTM().inverse());
     
-    setCurrentDragBounds({
-      x: Math.min(dragStart.x, loc.x),
-      y: Math.min(dragStart.y, loc.y),
-      w: Math.abs(loc.x - dragStart.x),
-      h: Math.abs(loc.y - dragStart.y)
-    });
+    // Optimize performance: Only add point if it's moved at least a few pixels from the last
+    const lastPoint = currentDrawPath[currentDrawPath.length - 1];
+    if (Math.hypot(loc.x - lastPoint.x, loc.y - lastPoint.y) > 10) {
+      setCurrentDrawPath([...currentDrawPath, { x: loc.x, y: loc.y }]);
+    }
   };
 
   const handleDrawEnd = (e) => {
-    if (!isDrawingNetwork || !dragStart || !currentDragBounds) return;
-    if (currentDragBounds.w > 20 && currentDragBounds.h > 20) {
-      if (setNetworkBounds) setNetworkBounds(currentDragBounds);
+    if (!isDrawingNetwork || !dragStart || !currentDrawPath) return;
+    
+    // Commit the path if there are enough points to form a polygon
+    if (currentDrawPath.length > 3) {
+      if (setNetworkBounds) setNetworkBounds([...currentDrawPath]);
       if (setIsDrawingNetwork) setIsDrawingNetwork(false);
     }
+    
     setDragStart(null);
-    setCurrentDragBounds(null);
+    setCurrentDrawPath(null);
+  };
+
+  // Helper to convert point array into an SVG path string
+  const generateSvgPolyline = (points) => {
+    if (!points || points.length === 0) return '';
+    return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
   };
 
   // SVG Defs
@@ -401,23 +433,21 @@ export default function MapPreview({
                 );
               })}
 
-              {/* Drawing Preview Bounds */}
-              {currentDragBounds && isDrawingNetwork && (
-                <rect 
-                  x={currentDragBounds.x} y={currentDragBounds.y} 
-                  width={currentDragBounds.w} height={currentDragBounds.h} 
+              {/* Freehand Drawing Lasso Preview */}
+              {currentDrawPath && currentDrawPath.length > 0 && isDrawingNetwork && (
+                <path 
+                  d={generateSvgPolyline(currentDrawPath)}
                   fill="rgba(236, 72, 153, 0.05)" 
                   stroke="#ec4899" strokeWidth="2" strokeDasharray="6 4"
                 />
               )}
               
-              {/* Permanent Active Bounds Viewer */}
-              {networkBounds && !isDrawingNetwork && (
-                <rect 
-                  x={networkBounds.x} y={networkBounds.y} 
-                  width={networkBounds.w} height={networkBounds.h} 
-                  fill="none" 
-                  stroke="#6366f1" strokeWidth="1" strokeDasharray="4 4" opacity="0.3"
+              {/* Permanent Active Lasso Bounds Viewer */}
+              {networkBounds && Array.isArray(networkBounds) && !isDrawingNetwork && (
+                <path 
+                  d={generateSvgPolyline(networkBounds)}
+                  fill="rgba(99, 102, 241, 0.02)" 
+                  stroke="#6366f1" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.4"
                 />
               )}
             </g>
