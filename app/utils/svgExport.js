@@ -179,6 +179,19 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
       hasOverlays = true;
   }
   
+  const mapNetworkGroup = clone.querySelector('#network-overlay');
+  if (mapNetworkGroup) {
+      // Create a clean group for the network layer
+      const networkGroupIn = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      networkGroupIn.setAttribute('id', 'network-lines');
+      
+      const elements = Array.from(mapNetworkGroup.querySelectorAll('path, circle, g'));
+      elements.forEach(el => networkGroupIn.appendChild(el));
+      
+      overlayGroupOut.appendChild(networkGroupIn);
+      hasOverlays = true;
+  }
+  
   if(hasOverlays) {
       mainGroup.appendChild(overlayGroupOut);
   }

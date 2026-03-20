@@ -80,14 +80,18 @@ export default function MapPreview({
     const stableRandom = (i) => Math.abs(Math.sin(seed * 100 + i));
     
     // We create arcs that span across the main map area
-    for (let i = 0; i < 20; i++) {
-        const x1 = 50 + stableRandom(i*1) * (dimensions.width - 100);
-        const y1 = 50 + stableRandom(i*2) * (dimensions.height - 100);
-        const x2 = 50 + stableRandom(i*3) * (dimensions.width - 100);
-        const y2 = 50 + stableRandom(i*4) * (dimensions.height - 100);
-        // Curve control point
-        const cx = (x1 + x2) / 2 + (stableRandom(i*5) - 0.5) * 600;
-        const cy = (y1 + y2) / 2 + (stableRandom(i*6) - 0.5) * 600;
+    for (let i = 0; i < 25; i++) {
+        const x1 = 100 + stableRandom(i*1) * (dimensions.width - 200);
+        const y1 = 100 + stableRandom(i*2) * (dimensions.height - 200);
+        const x2 = 100 + stableRandom(i*3) * (dimensions.width - 200);
+        const y2 = 100 + stableRandom(i*4) * (dimensions.height - 200);
+        
+        // Ensure distance is long enough for a good arc
+        if (Math.hypot(x2 - x1, y2 - y1) < 200) continue;
+
+        // Elegant Deep Sweeping Curves
+        const cx = (x1 + x2) / 2 + (stableRandom(i*5) - 0.5) * 800;
+        const cy = (y1 + y2) / 2 + (stableRandom(i*6) - 0.5) * 800;
         
         lines.push({ x1, y1, x2, y2, cx, cy });
     }
@@ -131,7 +135,7 @@ export default function MapPreview({
         const spacing = dotSize * 3;
         return (
           <pattern key={`dot-${i}`} id={`dot-${i}`} x="0" y="0" width={spacing} height={spacing} patternUnits="userSpaceOnUse">
-            <rect width={spacing} height={spacing} fill="#ffffff" />
+            {/* Removed the opaque white rect to prevent raster artifact effect and allow underlying background to show */}
             <circle cx={spacing/2} cy={spacing/2} r={dotSize * 0.45} fill={p.fillColor} />
           </pattern>
         );
@@ -273,14 +277,16 @@ export default function MapPreview({
                       d={`M ${line.x1} ${line.y1} Q ${line.cx} ${line.cy} ${line.x2} ${line.y2}`}
                       fill="none"
                       stroke={color}
-                      strokeWidth="1"
-                      opacity="0.3"
+                      strokeWidth="0.8"
+                      opacity="0.4"
                     />
-                    {/* Glowing Source Node */}
-                    <circle cx={line.x1} cy={line.y1} r={dotSize * 1.2} fill={color} opacity="0.8" />
-                    {/* Glowing Target Node (Concentric) */}
-                    <circle cx={line.x2} cy={line.y2} r={dotSize * 2.5} fill="none" stroke={color} strokeWidth="1" opacity="0.6" />
-                    <circle cx={line.x2} cy={line.y2} r={dotSize * 0.8} fill={color} />
+                    {/* Glowing Source Node - Smaller, more elegant */}
+                    <circle cx={line.x1} cy={line.y1} r={dotSize * 0.8} fill={color} opacity="0.9" />
+                    <circle cx={line.x1} cy={line.y1} r={dotSize * 2} fill="none" stroke={color} strokeWidth="0.5" opacity="0.3" />
+                    
+                    {/* Glowing Target Node (Concentric) - refined rings */}
+                    <circle cx={line.x2} cy={line.y2} r={dotSize * 1.8} fill="none" stroke={color} strokeWidth="0.8" opacity="0.8" />
+                    <circle cx={line.x2} cy={line.y2} r={dotSize * 0.5} fill={color} />
                   </g>
                 );
               })}
