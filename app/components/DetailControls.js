@@ -10,6 +10,13 @@ export default function DetailControls({
   stockMode, setStockMode,
   includeIslands, setIncludeIslands,
   dotSize, setDotSize,
+  networkNodeCount,
+  networkLineCount,
+  isDrawingNetwork,
+  setNetworkNodeCount,
+  setNetworkLineCount,
+  setIsDrawingNetwork,
+  setNetworkBounds,
   selectedStyle
 }) {
   return (
@@ -159,6 +166,58 @@ export default function DetailControls({
           </div>
         </div>
       )}
+      {/* Network Settings (Only for Network Style) */}
+      {selectedStyle === 'network' && (
+        <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+          <p className="text-[10px] uppercase text-indigo-400 font-mono tracking-wider mb-2">Network Nodes</p>
+          
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-[10px] text-gray-500 font-mono">Total Nodes</p>
+              <span className="text-[10px] font-mono text-gray-400">{networkNodeCount}</span>
+            </div>
+            <input 
+              type="range" min="0" max="150" step="1" 
+              value={networkNodeCount}
+              onChange={(e) => setNetworkNodeCount(parseInt(e.target.value))}
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500"
+            />
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-[10px] text-gray-500 font-mono">Connection Lines</p>
+              <span className="text-[10px] font-mono text-gray-400">{networkLineCount}</span>
+            </div>
+            <input 
+              type="range" min="0" max="100" step="1" 
+              value={networkLineCount}
+              onChange={(e) => setNetworkLineCount(parseInt(e.target.value))}
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500"
+            />
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={() => setIsDrawingNetwork(!isDrawingNetwork)}
+              className={`w-full py-2 px-3 rounded text-xs font-semibold transition-colors flex items-center justify-center gap-2 ${
+                isDrawingNetwork 
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                  : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
+              }`}
+            >
+              <span>{isDrawingNetwork ? '❌ Cancel Drawing' : '✏️ Draw Target Area'}</span>
+            </button>
+            <button
+              onClick={() => { setNetworkBounds(null); setIsDrawingNetwork(false); }}
+              className="w-full py-2 px-3 mt-2 rounded text-[10px] text-gray-500 hover:text-gray-300 transition-colors underline decoration-gray-600"
+            >
+              Reset to Full Map
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

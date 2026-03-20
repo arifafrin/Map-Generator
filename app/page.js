@@ -26,6 +26,12 @@ export default function Home() {
   const [stockMode, setStockMode] = useState(true);
   const [includeIslands, setIncludeIslands] = useState(true);
   const [dotSize, setDotSize] = useState(3);
+  
+  // Network Settings State
+  const [networkNodeCount, setNetworkNodeCount] = useState(30);
+  const [networkLineCount, setNetworkLineCount] = useState(15);
+  const [networkBounds, setNetworkBounds] = useState(null); // {x, y, w, h}
+  const [isDrawingNetwork, setIsDrawingNetwork] = useState(false);
 
   // App State
   const [geoData, setGeoData] = useState(null);

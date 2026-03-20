@@ -20,10 +20,20 @@ export default function MapPreview({
   countryName = 'Country',
   stockMode = false,
   includeIslands = true,
-  dotSize = 3
+  dotSize = 3,
+  networkNodeCount = 30,
+  networkLineCount = 15,
+  isDrawingNetwork = false,
+  setIsDrawingNetwork,
+  networkBounds,
+  setNetworkBounds
 }) {
   const svgRef = useRef(null);
   const [hoveredRegion, setHoveredRegion] = useState(null);
+  
+  // Interactive Drawing State
+  const [dragStart, setDragStart] = useState(null);
+  const [currentDragBounds, setCurrentDragBounds] = useState(null);
   
   const dimensions = useMemo(() => {
     switch(layout) {
@@ -72,31 +82,91 @@ export default function MapPreview({
     ? 0 
     : (autoStrokeWidth !== null ? Math.min(userStroke, autoStrokeWidth) : userStroke);
 
-  // Generate stable random network arcs for the Abstract Global Network style
-  const networkLines = useMemo(() => {
+  // Generate random network nodes constrained to the active bounds
+  const networkNodesArray = useMemo(() => {
     if (!styleConfig.isNetwork || !geoData) return [];
+    const nodes = [];
+    const seed = countryName.length || 5;
+    const stableRandom = (i) => Math.abs(Math.sin(seed * 100 + i));
+    
+    // Determine bounds
+    let bx = 50, by = 50, bw = dimensions.width - 100, bh = dimensions.height - 100;
+    if (networkBounds) {
+      bx = networkBounds.x;
+      by = networkBounds.y;
+      bw = networkBounds.w;
+      bh = networkBounds.h;
+    }
+
+    // Distribute nodes within the bounding box
+    for (let i = 0; i < networkNodeCount; i++) {
+        const x = bx + stableRandom(i*1) * bw;
+        const y = by + stableRandom(i*2) * bh;
+        nodes.push({ x, y, id: i });
+    }
+    return nodes;
+  }, [styleConfig.isNetwork, geoData, dimensions, countryName, networkBounds, networkNodeCount]);
+
+  // Generate stable network lines connecting random pairs of generated nodes
+  const networkLines = useMemo(() => {
+    if (!styleConfig.isNetwork || networkNodesArray.length < 2) return [];
     const lines = [];
     const seed = countryName.length || 5;
     const stableRandom = (i) => Math.abs(Math.sin(seed * 100 + i));
     
-    // We create arcs that span across the main map area
-    for (let i = 0; i < 25; i++) {
-        const x1 = 100 + stableRandom(i*1) * (dimensions.width - 200);
-        const y1 = 100 + stableRandom(i*2) * (dimensions.height - 200);
-        const x2 = 100 + stableRandom(i*3) * (dimensions.width - 200);
-        const y2 = 100 + stableRandom(i*4) * (dimensions.height - 200);
+    for (let i = 0; i < networkLineCount; i++) {
+        const n1 = networkNodesArray[Math.floor(stableRandom(i*3) * networkNodesArray.length)];
+        const n2 = networkNodesArray[Math.floor(stableRandom(i*4) * networkNodesArray.length)];
         
-        // Ensure distance is long enough for a good arc
-        if (Math.hypot(x2 - x1, y2 - y1) < 200) continue;
+        if (n1.id === n2.id) continue;
 
-        // Elegant Deep Sweeping Curves
-        const cx = (x1 + x2) / 2 + (stableRandom(i*5) - 0.5) * 800;
-        const cy = (y1 + y2) / 2 + (stableRandom(i*6) - 0.5) * 800;
+        // Elegant curved paths
+        const cx = (n1.x + n2.x) / 2 + (stableRandom(i*5) - 0.5) * 800;
+        const cy = (n1.y + n2.y) / 2 + (stableRandom(i*6) - 0.5) * 800;
         
-        lines.push({ x1, y1, x2, y2, cx, cy });
+        lines.push({ x1: n1.x, y1: n1.y, x2: n2.x, y2: n2.y, cx, cy });
     }
     return lines;
-  }, [styleConfig.isNetwork, geoData, dimensions, countryName]);
+  }, [styleConfig.isNetwork, networkNodesArray, networkLineCount, countryName]);
+
+  // Handle Interactive Drawing
+  const handlePointerDown = (e) => {
+    if (!isDrawingNetwork || !svgRef.current) return;
+    const pt = svgRef.current.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const loc = pt.matrixTransform(svgRef.current.getScreenCTM().inverse());
+    setDragStart({ x: loc.x, y: loc.y });
+    setCurrentDragBounds({ x: loc.x, y: loc.y, w: 0, h: 0 });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDrawingNetwork || !dragStart || !svgRef.current) return;
+    const pt = svgRef.current.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const loc = pt.matrixTransform(svgRef.current.getScreenCTM().inverse());
+    
+    // Allow dragging backwards (negative width/height compensation)
+    setCurrentDragBounds({
+      x: Math.min(dragStart.x, loc.x),
+      y: Math.min(dragStart.y, loc.y),
+      w: Math.abs(loc.x - dragStart.x),
+      h: Math.abs(loc.y - dragStart.y)
+    });
+  };
+
+  const handlePointerUp = (e) => {
+    if (!isDrawingNetwork || !dragStart || !currentDragBounds) return;
+    if (currentDragBounds.w > 20 && currentDragBounds.h > 20) {
+      if (setNetworkBounds) setNetworkBounds(currentDragBounds);
+      if (setIsDrawingNetwork) setIsDrawingNetwork(false);
+    }
+    setDragStart(null);
+    setCurrentDragBounds(null);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
 
   // SVG Defs
   const defs = (
@@ -240,7 +310,13 @@ export default function MapPreview({
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           xmlns="http://www.w3.org/2000/svg"
           className="max-w-full max-h-full transition-all duration-500 origin-center"
-          style={{ background: backgroundColor }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          style={{ 
+            background: backgroundColor,
+            cursor: isDrawingNetwork ? 'crosshair' : 'default'
+          }}
         >
           {defs}
           
@@ -267,29 +343,63 @@ export default function MapPreview({
 
           {/* Abstract Global Network Overlay */}
           {styleConfig.isNetwork && (
-            <g id="network-overlay" className="pointer-events-none" style={{ filter: styleConfig.glow ? 'url(#neonGlow)' : 'none' }}>
+            <g id="network-overlay" className={isDrawingNetwork ? 'pointer-events-none' : ''}>
+              
+              {/* Render Connection Lines */}
               {networkLines.map((line, i) => {
                 const color = colors[i % colors.length];
                 return (
-                  <g key={`net-${i}`}>
-                    {/* Sweeping Orbital Path */}
-                    <path
-                      d={`M ${line.x1} ${line.y1} Q ${line.cx} ${line.cy} ${line.x2} ${line.y2}`}
-                      fill="none"
-                      stroke={color}
-                      strokeWidth="0.8"
-                      opacity="0.4"
-                    />
-                    {/* Glowing Source Node - Smaller, more elegant */}
-                    <circle cx={line.x1} cy={line.y1} r={dotSize * 0.8} fill={color} opacity="0.9" />
-                    <circle cx={line.x1} cy={line.y1} r={dotSize * 2} fill="none" stroke={color} strokeWidth="0.5" opacity="0.3" />
-                    
-                    {/* Glowing Target Node (Concentric) - refined rings */}
-                    <circle cx={line.x2} cy={line.y2} r={dotSize * 1.8} fill="none" stroke={color} strokeWidth="0.8" opacity="0.8" />
-                    <circle cx={line.x2} cy={line.y2} r={dotSize * 0.5} fill={color} />
+                  <path
+                    key={`line-${i}`}
+                    d={`M ${line.x1} ${line.y1} Q ${line.cx} ${line.cy} ${line.x2} ${line.y2}`}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="0.8"
+                    opacity="0.4"
+                  />
+                );
+              })}
+
+              {/* Render Distinct Nodes */}
+              {networkNodesArray.map((node, i) => {
+                const color = colors[i % colors.length];
+                const isTarget = i % 3 === 0; // Some nodes get concentric rings
+                return (
+                  <g key={`node-${i}`}>
+                    {isTarget ? (
+                      <>
+                        <circle cx={node.x} cy={node.y} r={dotSize * 1.8} fill="none" stroke={color} strokeWidth="0.8" opacity="0.8" />
+                        <circle cx={node.x} cy={node.y} r={dotSize * 0.5} fill={color} />
+                      </>
+                    ) : (
+                      <>
+                        <circle cx={node.x} cy={node.y} r={dotSize * 0.8} fill={color} opacity="0.9" />
+                        <circle cx={node.x} cy={node.y} r={dotSize * 2} fill="none" stroke={color} strokeWidth="0.5" opacity="0.3" />
+                      </>
+                    )}
                   </g>
                 );
               })}
+
+              {/* Drawing Preview Bounds */}
+              {currentDragBounds && isDrawingNetwork && (
+                <rect 
+                  x={currentDragBounds.x} y={currentDragBounds.y} 
+                  width={currentDragBounds.w} height={currentDragBounds.h} 
+                  fill="rgba(236, 72, 153, 0.05)" 
+                  stroke="#ec4899" strokeWidth="2" strokeDasharray="6 4"
+                />
+              )}
+              
+              {/* Permanent Active Bounds Viewer */}
+              {networkBounds && !isDrawingNetwork && (
+                <rect 
+                  x={networkBounds.x} y={networkBounds.y} 
+                  width={networkBounds.w} height={networkBounds.h} 
+                  fill="none" 
+                  stroke="#6366f1" strokeWidth="1" strokeDasharray="4 4" opacity="0.3"
+                />
+              )}
             </g>
           )}
 
