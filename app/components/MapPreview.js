@@ -151,6 +151,8 @@ export default function MapPreview({
         stroke={displayStroke}
         strokeWidth={finalStrokeWidth}
         vectorEffect="non-scaling-stroke"
+        strokeLinejoin="round"
+        strokeLinecap="round"
         className="transition-all duration-300 cursor-pointer"
         style={{
           opacity: isHovered && !styleConfig.glow ? 0.85 : 1,
