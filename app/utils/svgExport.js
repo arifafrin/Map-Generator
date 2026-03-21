@@ -179,6 +179,19 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
       hasOverlays = true;
   }
   
+  const mapPinsGroup = clone.querySelector('#map-region-pins');
+  if (mapPinsGroup) {
+      const cleanPinsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      cleanPinsGroup.setAttribute('id', 'Location-Pins'); // Best UX for Illustrator Layer names
+      
+      // Migrate all individual pins into this fresh group without destroying nesting
+      const elements = Array.from(mapPinsGroup.children);
+      elements.forEach(el => cleanPinsGroup.appendChild(el));
+      
+      overlayGroupOut.appendChild(cleanPinsGroup);
+      hasOverlays = true;
+  }
+  
   const mapNetworkGroup = clone.querySelector('#network-overlay');
   if (mapNetworkGroup) {
       // Create a clean group for the atom
@@ -207,6 +220,89 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   if (existingDefs) clone.appendChild(existingDefs); // Must come before use
   clone.appendChild(mainGroup);
   
+  // 5.5 Convert all external images to base64 for offline Illustrator viewing
+  const images = Array.from(clone.querySelectorAll('image'));
+  for (let img of images) {
+    const src = img.getAttribute('href') || img.getAttribute('xlink:href');
+    if (src && src.startsWith('http')) {
+      try {
+        const response = await fetch(src);
+        const blob = await response.blob();
+        const base64data = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+        
+        // Critical for Illustrator / Old Software compatibility
+        img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', base64data);
+        img.setAttribute('href', base64data);
+      } catch (err) {
+        console.warn("Failed to embed image as base64:", src);
+      }
+    }
+  }
+
+  // --- MICROSTOCK MACRO-FLATTENING ENGINE ---
+  
+  // 1. Expand all <use> symbol instances into raw DOM elements (Fixes Illustrator Symbol Locking)
+  const useTags = Array.from(clone.querySelectorAll('use'));
+  useTags.forEach(useEl => {
+      const href = useEl.getAttribute('href') || useEl.getAttribute('xlink:href');
+      if (href && href.startsWith('#')) {
+          const targetId = href.substring(1);
+          const targetEl = clone.querySelector(`#${targetId}`);
+          if (targetEl) {
+              const newEl = targetEl.cloneNode(true);
+              newEl.removeAttribute('id'); // Strip ID to prevent DOM conflicts on 50+ copies
+              
+              // Apply <use> explicit x/y translations if they exist
+              const x = parseFloat(useEl.getAttribute('x')) || 0;
+              const y = parseFloat(useEl.getAttribute('y')) || 0;
+              
+              let transform = useEl.getAttribute('transform') || '';
+              if (x !== 0 || y !== 0) {
+                 transform = `translate(${x}, ${y}) ` + transform;
+              }
+              
+              if (transform.trim() !== '') {
+                  const existingTransform = newEl.getAttribute('transform') || '';
+                  newEl.setAttribute('transform', (transform + ' ' + existingTransform).trim());
+              }
+              
+              // Carry over vital presentation attributes
+              ['fill', 'fill-rule', 'stroke', 'stroke-width', 'opacity'].forEach(attr => {
+                 if (useEl.hasAttribute(attr)) {
+                     newEl.setAttribute(attr, useEl.getAttribute(attr));
+                 }
+              });
+              
+              if (useEl.parentNode) {
+                  useEl.parentNode.replaceChild(newEl, useEl);
+              }
+          }
+      }
+  });
+
+  // 2. Eradicate invisible/empty stock-rejected proxy geometries
+  const allShapes = Array.from(clone.querySelectorAll('path, rect, circle, ellipse, polygon, polyline'));
+  allShapes.forEach(shape => {
+      const fill = shape.getAttribute('fill');
+      const stroke = shape.getAttribute('stroke');
+      const opacity = shape.getAttribute('opacity');
+      const styleDisplay = shape.style.display || shape.getAttribute('display');
+
+      if (styleDisplay === 'none' || String(opacity) === '0') {
+          shape.remove();
+          return;
+      }
+      
+      // If filling is explicitly 'none' and it has absolutely no border stroke, it is an invisible bounding trace.
+      if (fill === 'none' && (!stroke || stroke === 'none' || stroke === 'transparent')) {
+          shape.remove();
+      }
+  });
+
   // 6. Serialize & Format
   const serializer = new XMLSerializer();
   let svgString = serializer.serializeToString(clone);

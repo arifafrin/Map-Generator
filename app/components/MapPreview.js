@@ -24,10 +24,78 @@ export default function MapPreview({
   atomX = 50,
   atomY = 50,
   atomSize = 32,
-  electronCount = 12
+  electronCount = 12,
+  pinEnabled = false,
+  pinSize = 36,
+  pinColor = '#ef4444',
+  countryIso2 = null
 }) {
   const svgRef = useRef(null);
   const [hoveredRegion, setHoveredRegion] = useState(null);
+  const [vectorFlagInfo, setVectorFlagInfo] = useState(null);
+
+  // Download pure SVG geometry for the flag natively
+  useEffect(() => {
+    if (countryIso2 && !['bd', 'pw', 'jp'].includes(countryIso2)) {
+       fetch(`https://flagcdn.com/${countryIso2}.svg`)
+         .then(res => res.text())
+         .then(text => {
+             let replacedText = text;
+             
+             // --- STOCK VECTOR CORE OPTIMIZER: FLATTEN INTERSECTING STARS ---
+             // FlagCDN (from Wikipedia sources) heavily optimizes stars mathematically by crossing their paths!
+             // This results in self-intersecting un-mergeable paths in Adobe Illustrator Pathfinder. 
+             // We strategically map these exact internet strings to pristine pre-calculated 10-point un-intersected hulls!
+             
+             // USA 5-point star path (Intersecting) -> 10-point polygon (Unite/Merge safe)
+             replacedText = replacedText.replace(
+                /d="m247 90 70\.534 217\.082-184\.66-134\.164h228\.253L176\.466 307\.082z"/g, 
+                'd="M 247,90 L 271.365,165.023 L 350.292,165.023 L 286.463,211.396 L 310.828,286.419 L 247,240.046 L 183.172,286.419 L 207.537,211.396 L 143.708,165.023 L 222.635,165.023 Z"'
+             );
+             // China 5-point star path
+             replacedText = replacedText.replace(
+                /d="m0-30 17\.634 54\.27-46\.166-33\.54h57\.064l-46\.166 33\.54Z"/g, 
+                'd="M 0,-30 L 6.733,-9.27 L 28.531,-9.27 L 10.899,3.541 L 17.633,24.27 L 0,11.459 L -17.633,24.27 L -10.899,3.541 L -28.531,-9.27 L -6.733,-9.27 Z"'
+             );
+             // Vietnam 5-point star path
+             replacedText = replacedText.replace(
+                /d="m15 4-3\.53 10\.85 9\.24-6\.7H9\.29l9\.24 6\.7z"/g, 
+                'd="M 15,4 L 16.795,9.528 L 22.608,9.528 L 17.906,12.944 L 19.702,18.472 L 15,15.056 L 10.298,18.472 L 12.094,12.944 L 7.392,9.528 L 13.205,9.528 Z"'
+             );
+
+             const parser = new DOMParser();
+             const doc = parser.parseFromString(replacedText, 'image/svg+xml');
+
+             const svgEl = doc.documentElement;
+             const viewBoxAttr = svgEl.getAttribute('viewBox') || '0 0 640 480';
+             const [vx, vy, vw, vh] = viewBoxAttr.split(/[\s,]+/).map(parseFloat);
+             
+             // Mathematically compute robust exact "xMidYMid slice" transform geometry to eliminate Nested SVG Viewports
+             const targetW = 12;
+             const targetH = 12;
+             const scale = Math.max(targetW / vw, targetH / vh);
+             const scaledW = vw * scale;
+             const scaledH = vh * scale;
+             
+             // Offset to absolute center of the -6, -6 boundary box
+             const tx = -6 - ((scaledW - targetW) / 2) - (vx * scale);
+             const ty = -6 - ((scaledH - targetH) / 2) - (vy * scale);
+             const transformStr = `translate(${tx.toFixed(4)}, ${ty.toFixed(4)}) scale(${scale.toFixed(6)})`;
+
+             let html = '';
+             Array.from(svgEl.childNodes).forEach(node => {
+                if (node.nodeType === 1) html += node.outerHTML;
+             });
+             setVectorFlagInfo({ viewBox: viewBoxAttr, html, transformStr });
+         })
+         .catch(e => {
+            // Silently swallow fetch errors so Next.js dev server doesn't throw a red ErrorBoundary overlay
+            setVectorFlagInfo(null);
+         });
+    } else {
+       setVectorFlagInfo(null);
+    }
+  }, [countryIso2]);
 
   const dimensions = useMemo(() => {
     switch(layout) {
@@ -42,7 +110,7 @@ export default function MapPreview({
     if (svgRef.current && onSvgRef) {
       onSvgRef(svgRef.current);
     }
-  }, [geoData, onSvgRef, dimensions, style, colors, bgMode, showLabels, borderWidth, dotSize]);
+  }, [geoData, onSvgRef, dimensions, style, colors, bgMode, showLabels, borderWidth, dotSize, pinEnabled, pinSize, pinColor, countryIso2]);
 
   const styleConfig = mapStyles[style] || mapStyles.colorful;
   const backgroundColor = stockMode ? '#ffffff' : (bgMode === 'transparent' ? 'transparent' : styleConfig.background);
@@ -54,7 +122,7 @@ export default function MapPreview({
     }
     const safePadding = stockMode ? 100 : 40;
     return processGeoData(geoData, dimensions.width, dimensions.height, safePadding, colors, styleConfig, includeIslands);
-  }, [geoData, dimensions, colors, styleConfig, layout, includeIslands, stockMode]);
+  }, [geoData, dimensions, colors, styleConfig, includeIslands, stockMode]);
 
   // Flatten all paths for tooltip lookup
   const allPaths = useMemo(() => groups.flatMap(g => g.paths), [groups]);
@@ -123,6 +191,11 @@ export default function MapPreview({
           </pattern>
         );
       })}
+      
+      {/* Universal ClipPath for all flag instances inside pins */}
+      <clipPath id="global-flag-clip">
+        <circle cx="0" cy="0" r="4.8" />
+      </clipPath>
     </defs>
   );
 
@@ -362,6 +435,81 @@ export default function MapPreview({
           {showLabels && (
             <g id="map-labels">
               {allPaths.map((path) => renderLabel(path))}
+            </g>
+          )}
+
+          {/* Location Pin Overlay - Auto Centroid Multiple Pins */}
+          {pinEnabled && (
+            <g id="map-region-pins">
+              {(() => {
+                const drawnPins = [];
+                // Calculate physical bounds based on pin scale to prevent messy UI overlapping
+                const minDistance = pinSize * 0.85;
+
+                return allPaths.map((path, idx) => {
+                  if (!path.centroid) return null;
+                  const cx = path.centroid.x;
+                  const cy = path.centroid.y;
+
+                  // Spatial Collision Culling (Prevents "hijibiji" messy swarms in dense countries/cities like England)
+                  for (let i = 0; i < drawnPins.length; i++) {
+                      const dx = cx - drawnPins[i].x;
+                      const dy = cy - drawnPins[i].y;
+                      if (Math.sqrt(dx*dx + dy*dy) < minDistance) return null;
+                  }
+                  
+                  drawnPins.push({x: cx, y: cy});
+
+                  const s = pinSize / 24; // Base scale calculation
+
+                return (
+                  <g key={`pin-${idx}`} id={`location-pin-${idx}`} transform={`translate(${cx}, ${cy})`} style={{ pointerEvents: 'none' }}>
+                    {/* Shadow for depth */}
+                    <ellipse cx="0" cy={s * 2} rx={s * 5} ry={s * 2.5} fill="#000000" opacity="0.3" />
+                    
+                    {/* Floating folded pin head */}
+                    <g transform={`scale(${s}) translate(0, -16)`}>
+                      {/* Entire symmetric Pin Base using bezier curves and true arcs */}
+                      <path d="M0,16 C-8,8 -8,0 -8,0 A8,8 0 0,1 0,-8 A8,8 0 0,1 8,0 C8,0 8,8 0,16 Z" fill={pinColor} />
+                      
+                      {/* Right Half (darker fold effect using exact same arc path subset) */}
+                      <path d="M0,-8 A8,8 0 0,1 8,0 C8,0 8,8 0,16 Z" fill="#000000" opacity="0.15" />
+                      
+                      {/* White inner circle framing the flag centered precisely in the top arc */}
+                      <circle cx="0" cy="0" r="6" fill="#ffffff" />
+                      
+                      {/* Inner border to separate flag from white frame */}
+                      <circle cx="0" cy="0" r="5" fill="none" stroke="#e5e7eb" strokeWidth="0.5" />
+
+                      {/* Flag Image specifically clipped to circular area */}
+                      {countryIso2 === 'bd' ? (
+                        <>
+                          {/* Custom centered SVG for Bangladesh to fix official offset */}
+                          <circle cx="0" cy="0" r="4.8" fill="#006a4e" />
+                          <circle cx="0" cy="0" r="2.6" fill="#f42a41" />
+                        </>
+                      ) : countryIso2 === 'pw' ? (
+                        <>
+                          {/* Custom centered SVG for Palau to fix official offset */}
+                          <circle cx="0" cy="0" r="4.8" fill="#4aadd6" />
+                          <circle cx="0" cy="0" r="2.2" fill="#ffde00" />
+                        </>
+                      ) : countryIso2 === 'jp' ? (
+                        <>
+                          {/* Custom centered SVG for Japan for ultra crisp rendering */}
+                          <circle cx="0" cy="0" r="4.8" fill="#ffffff" />
+                          <circle cx="0" cy="0" r="2.5" fill="#bc002d" />
+                        </>
+                      ) : (vectorFlagInfo && countryIso2) ? (
+                        <g clipPath="url(#global-flag-clip)">
+                          <g transform={vectorFlagInfo.transformStr} dangerouslySetInnerHTML={{ __html: vectorFlagInfo.html }} />
+                        </g>
+                      ) : null}
+                    </g>
+                  </g>
+                );
+              });
+             })()}
             </g>
           )}
 

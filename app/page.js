@@ -9,6 +9,7 @@ import MapPreview from './components/MapPreview';
 import ExportControls from './components/ExportControls';
 import countries from './data/countries';
 import { getBeautifulRandomMapCombo, mapStyles, aiColorThemes, countryPalettes } from './utils/colorUtils';
+import * as isoCountries from 'i18n-iso-countries';
 
 export default function Home() {
   const [selectedCountry, setSelectedCountry] = useState('USA');
@@ -27,6 +28,11 @@ export default function Home() {
   const [includeIslands, setIncludeIslands] = useState(true);
   const [dotSize, setDotSize] = useState(3);
   
+  // Location Pin State
+  const [pinEnabled, setPinEnabled] = useState(false);
+  const [pinSize, setPinSize] = useState(36);
+  const [pinColor, setPinColor] = useState('#ef4444');
+
   // Atom Settings State (for Network style)
   const [atomX, setAtomX] = useState(50); // percentage 0-100
   const [atomY, setAtomY] = useState(50); // percentage 0-100
@@ -44,11 +50,25 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('style'); // style, colors, details
 
   const countryName = countries.find(c => c.code === selectedCountry)?.name;
+  
+  // Intercept specific sub-national regions that lack standard top-level ISO-3166-1 alpha-3 sovereignty
+  const customIsoMap = {
+     'ENG': 'gb', // User explicitly requested the UK Union Jack for England
+     'SCT': 'gb-sct',
+     'WLS': 'gb-wls',
+     'NIR': 'gb-nir'
+  };
+  
+  // Need Alpha-2 code for reliable FlagCDN fetching
+  const rawIso2 = customIsoMap[selectedCountry] || isoCountries.alpha3ToAlpha2(selectedCountry); 
+  const countryIso2 = selectedCountry === 'WLD' ? null : (rawIso2?.toLowerCase() || 'un');
 
   // Load Map Data
   useEffect(() => {
     if (!selectedCountry) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     fetch(`/api/geojson?code=${selectedCountry}`)
       .then(res => {
@@ -67,6 +87,7 @@ export default function Home() {
         setGeoData(null);
       })
       .finally(() => setLoading(false));
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountry]);
 
   // Handle Style Switch updates
@@ -78,13 +99,17 @@ export default function Home() {
     
     if (colorMode !== 'custom' && colorMode !== 'random' && colorMode !== 'blend' && !colorMode.startsWith('theme-')) {
       if (colorMode === 'auto' && isGenericStyle && countryPalettes[selectedCountry]) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setColors([...countryPalettes[selectedCountry].colors]);
       } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setColors([...mapStyles[selectedStyle].regionColors]);
       }
     }
     // Update default border width when switching styles
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBorderWidth(mapStyles[selectedStyle].strokeWidth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStyle]);
 
   const handleMagicMap = () => {
@@ -210,6 +235,9 @@ export default function Home() {
                   atomY={atomY} setAtomY={setAtomY}
                   electronCount={electronCount} setElectronCount={setElectronCount}
                   atomSize={atomSize} setAtomSize={setAtomSize}
+                  pinEnabled={pinEnabled} setPinEnabled={setPinEnabled}
+                  pinSize={pinSize} setPinSize={setPinSize}
+                  pinColor={pinColor} setPinColor={setPinColor}
                   selectedStyle={selectedStyle}
                 />
               )}
@@ -304,6 +332,10 @@ export default function Home() {
                   atomY={atomY}
                   electronCount={electronCount}
                   atomSize={atomSize}
+                  pinEnabled={pinEnabled}
+                  pinSize={pinSize}
+                  pinColor={pinColor}
+                  countryIso2={countryIso2}
                 />
              </div>
           ) : null}
