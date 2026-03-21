@@ -60,8 +60,9 @@ export function featureArea(feature) {
  * that cause scattered dots. Keeps sub-polygons above the area threshold.
  */
 function cleanMultiPolygon(feature, minAreaFraction = 0.001) {
-  // CRITICAL FIX: Exempt Alaska and Hawaii entirely to prevent topological destruction
-  if (isAlaska(feature) || isHawaii(feature)) return feature;
+  // CRITICAL FIX: Exempt Alaska entirely to prevent topological destruction on antimeridian.
+  // Allow Hawaii to be cleaned to remove tiny Northwestern Atolls.
+  if (isAlaska(feature)) return feature;
   
   if (!feature.geometry || feature.geometry.type !== 'MultiPolygon') return feature;
   
