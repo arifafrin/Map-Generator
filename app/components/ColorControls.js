@@ -5,6 +5,8 @@ import { countryPalettes, aiColorThemes, generateRandomPalette, generateMonochro
 
 export default function ColorControls({ selectedCountry, colors, onColorsChange, colorMode, onColorModeChange }) {
 
+  const [blendColor, setBlendColor] = useState('#ff4500');
+
   const handleAutoColors = () => {
     onColorModeChange('auto');
     const palette = countryPalettes[selectedCountry];
@@ -23,14 +25,16 @@ export default function ColorControls({ selectedCountry, colors, onColorsChange,
     onColorsChange(generateRandomPalette(9)); // Updated to 9 color slots to ensure coverage
   };
 
-  const handleBaseColorBlend = (baseHex) => {
+  const handleBaseColorBlend = (e) => {
+    const val = e.target.value.toLowerCase();
+    setBlendColor(val);
     onColorModeChange('blend');
-    onColorsChange(generateMonochromaticPalette(baseHex, 10)); // Generate 10 blended shades
+    onColorsChange(generateMonochromaticPalette(val, 10)); // Generate 10 blended shades
   };
 
   const handleColorChange = (index, newColor) => {
     const updated = [...colors];
-    updated[index] = newColor;
+    updated[index] = newColor.toLowerCase();
     onColorsChange(updated);
     onColorModeChange('custom');
   };
@@ -76,8 +80,8 @@ export default function ColorControls({ selectedCountry, colors, onColorsChange,
         <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-indigo-400 shadow-md">
           <input
             type="color"
-            value={colorMode === 'blend' ? (colors[0] || '#ff4500') : '#ff4500'}
-            onChange={(e) => handleBaseColorBlend(e.target.value)}
+            value={blendColor}
+            onChange={handleBaseColorBlend}
             className="absolute -inset-4 w-16 h-16 cursor-pointer"
             title="Pick a Base Seed Color"
           />
@@ -116,7 +120,7 @@ export default function ColorControls({ selectedCountry, colors, onColorsChange,
             <div key={i} className="relative group aspect-square">
               <input
                 type="color"
-                value={color.startsWith('#') ? color : '#888888'}
+                value={color.startsWith('#') && color.length === 7 ? color.toLowerCase() : '#888888'}
                 onChange={(e) => handleColorChange(i, e.target.value)}
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                 title="Click to edit"

@@ -21,20 +21,14 @@ export default function MapPreview({
   stockMode = false,
   includeIslands = true,
   dotSize = 3,
-  networkNodeCount = 30,
-  networkLineCount = 15,
-  isDrawingNetwork = false,
-  setIsDrawingNetwork,
-  networkBounds,
-  setNetworkBounds
+  atomX = 50,
+  atomY = 50,
+  atomSize = 32,
+  electronCount = 12
 }) {
   const svgRef = useRef(null);
   const [hoveredRegion, setHoveredRegion] = useState(null);
-  
-  // Interactive Drawing State
-  const [dragStart, setDragStart] = useState(null);
-  const [currentDrawPath, setCurrentDrawPath] = useState(null); // Array of {x, y} points
-  
+
   const dimensions = useMemo(() => {
     switch(layout) {
       case 'square': return { width: 1200, height: 1200 };
@@ -53,7 +47,7 @@ export default function MapPreview({
   const styleConfig = mapStyles[style] || mapStyles.colorful;
   const backgroundColor = stockMode ? '#ffffff' : (bgMode === 'transparent' ? 'transparent' : styleConfig.background);
 
-  // Core d3-geo rendering pipeline — now returns grouped paths
+  // Core d3-geo rendering pipeline
   const { groups, debugBounds } = useMemo(() => {
     if (!geoData || !geoData.features || geoData.features.length === 0) {
       return { groups: [], debugBounds: null };
@@ -66,155 +60,33 @@ export default function MapPreview({
   const allPaths = useMemo(() => groups.flatMap(g => g.paths), [groups]);
 
   // AUTO-STROKE: Adapt border width based on region density
-  // Dense maps (100+ regions) get thinner strokes so features stay distinguishable
   const autoStrokeWidth = useMemo(() => {
     const regionCount = allPaths.length;
     if (regionCount > 150) return 0.2;
     if (regionCount > 100) return 0.3;
     if (regionCount > 50) return 0.4;
-    return null; // No override, use user setting
+    return null;
   }, [allPaths.length]);
 
-  // Use user's border width, unless the style forces a specific stroke width (like 0 for silhouette)
-  // Auto-stroke kicks in for dense maps to prevent border congestion
   const userStroke = borderWidth !== null ? borderWidth : styleConfig.strokeWidth;
   const finalStrokeWidth = styleConfig.strokeWidth === 0 
     ? 0 
     : (autoStrokeWidth !== null ? Math.min(userStroke, autoStrokeWidth) : userStroke);
 
-  // Ray-Casting Algorithm to test if a point is inside an arbitrary polygon
-  const isPointInPolygon = (x, y, polygon) => {
-    let isInside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        const xi = polygon[i].x, yi = polygon[i].y;
-        const xj = polygon[j].x, yj = polygon[j].y;
-        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect) isInside = !isInside;
-    }
-    return isInside;
-  };
-
-  // Generate random network nodes constrained to the active bounds
-  const networkNodesArray = useMemo(() => {
-    if (!styleConfig.isNetwork || !geoData) return [];
-    const nodes = [];
-    const seed = countryName.length || 5;
-    const stableRandom = (i) => Math.abs(Math.sin(seed * 100 + i));
-    
-    // Determine boundary area
-    let minX = 50, minY = 50, maxX = dimensions.width - 100, maxY = dimensions.height - 100;
-    const hasCustomBounds = networkBounds && Array.isArray(networkBounds) && networkBounds.length > 2;
-
-    if (hasCustomBounds) {
-      minX = Math.min(...networkBounds.map(p => p.x));
-      maxX = Math.max(...networkBounds.map(p => p.x));
-      minY = Math.min(...networkBounds.map(p => p.y));
-      maxY = Math.max(...networkBounds.map(p => p.y));
-    }
-
-    // Distribute nodes within the bounding box (and precisely inside the polygon if custom)
-    let attempts = 0;
-    let nodeCount = 0;
-    while (nodeCount < networkNodeCount && attempts < networkNodeCount * 100) {
-        // We use attempts as the stable hash seed so the points don't stack up infinitely if rejected
-        const x = minX + stableRandom(attempts*1) * (maxX - minX);
-        const y = minY + stableRandom(attempts*2) * (maxY - minY);
-        attempts++;
-
-        if (hasCustomBounds && !isPointInPolygon(x, y, networkBounds)) {
-            continue; // Node fell outside the user's hand-drawn lasso
-        }
-
-        nodes.push({ x, y, id: nodeCount });
-        nodeCount++;
-    }
-    return nodes;
-  }, [styleConfig.isNetwork, geoData, dimensions, countryName, networkBounds, networkNodeCount]);
-
-  // Generate stable network lines connecting random pairs of generated nodes
-  const networkLines = useMemo(() => {
-    if (!styleConfig.isNetwork || networkNodesArray.length < 2) return [];
-    const lines = [];
-    const seed = countryName.length || 5;
-    const stableRandom = (i) => Math.abs(Math.sin(seed * 100 + i));
-    
-    for (let i = 0; i < networkLineCount; i++) {
-        const n1 = networkNodesArray[Math.floor(stableRandom(i*3) * networkNodesArray.length)];
-        const n2 = networkNodesArray[Math.floor(stableRandom(i*4) * networkNodesArray.length)];
-        
-        if (n1.id === n2.id) continue;
-
-        // Elegant curved paths
-        const cx = (n1.x + n2.x) / 2 + (stableRandom(i*5) - 0.5) * 800;
-        const cy = (n1.y + n2.y) / 2 + (stableRandom(i*6) - 0.5) * 800;
-        
-        lines.push({ x1: n1.x, y1: n1.y, x2: n2.x, y2: n2.y, cx, cy });
-    }
-    return lines;
-  }, [styleConfig.isNetwork, networkNodesArray, networkLineCount, countryName]);
-
-  // Handle Interactive Drawing via explicit overlay rect
-  const handleDrawStart = (e) => {
-    if (!isDrawingNetwork || !svgRef.current) return;
-    
-    // Support touching and clicking
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    const pt = svgRef.current.createSVGPoint();
-    pt.x = clientX;
-    pt.y = clientY;
-    const loc = pt.matrixTransform(svgRef.current.getScreenCTM().inverse());
-    setDragStart({ x: loc.x, y: loc.y });
-    setCurrentDrawPath([{ x: loc.x, y: loc.y }]); // Initialize new lasso path
-  };
-
-  const handleDrawMove = (e) => {
-    if (!isDrawingNetwork || !dragStart || !svgRef.current || !currentDrawPath) return;
-    
-    // Prevent scrolling on touch devices while drawing
-    if (e.cancelable) e.preventDefault();
-
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    const pt = svgRef.current.createSVGPoint();
-    pt.x = clientX;
-    pt.y = clientY;
-    const loc = pt.matrixTransform(svgRef.current.getScreenCTM().inverse());
-    
-    // Optimize performance: Only add point if it's moved at least a few pixels from the last
-    const lastPoint = currentDrawPath[currentDrawPath.length - 1];
-    if (Math.hypot(loc.x - lastPoint.x, loc.y - lastPoint.y) > 10) {
-      setCurrentDrawPath([...currentDrawPath, { x: loc.x, y: loc.y }]);
-    }
-  };
-
-  const handleDrawEnd = (e) => {
-    if (!isDrawingNetwork || !dragStart || !currentDrawPath) return;
-    
-    // Commit the path if there are enough points to form a polygon
-    if (currentDrawPath.length > 3) {
-      if (setNetworkBounds) setNetworkBounds([...currentDrawPath]);
-      if (setIsDrawingNetwork) setIsDrawingNetwork(false);
-    }
-    
-    setDragStart(null);
-    setCurrentDrawPath(null);
-  };
-
-  // Helper to convert point array into an SVG path string
-  const generateSvgPolyline = (points) => {
-    if (!points || points.length === 0) return '';
-    return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
-  };
-
-  // SVG Defs
   const defs = (
     <defs>
       {styleConfig.glow && (
         <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      )}
+      {styleConfig.isNetwork && (
+        <filter id="atomGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
@@ -376,80 +248,69 @@ export default function MapPreview({
             })}
           </g>
 
-          {/* Interactive Drawing Hit Box */}
-          {styleConfig.isNetwork && isDrawingNetwork && (
-            <rect 
-              width={dimensions.width} 
-              height={dimensions.height} 
-              fill="transparent"
-              style={{ cursor: 'crosshair', touchAction: 'none' }}
-              onMouseDown={handleDrawStart}
-              onMouseMove={handleDrawMove}
-              onMouseUp={handleDrawEnd}
-              onMouseLeave={handleDrawEnd}
-              onTouchStart={handleDrawStart}
-              onTouchMove={handleDrawMove}
-              onTouchEnd={handleDrawEnd}
-            />
-          )}
 
-          {/* Abstract Global Network Overlay */}
+          {/* Abstract Global Network Overlay — Single Large Atom */}
           {styleConfig.isNetwork && (
-            <g id="network-overlay" className={isDrawingNetwork ? 'pointer-events-none' : ''}>
+            <g id="network-overlay">
               
-              {/* Render Connection Lines */}
-              {networkLines.map((line, i) => {
-                const color = colors[i % colors.length];
+              {/* ONE Large Atom positioned by user controls */}
+              {(() => {
+                const cx = dimensions.width * (atomX / 100);
+                const cy = dimensions.height * (atomY / 100);
+                const color = colors[0] || '#ff4500';
+                const color2 = colors[1] || colors[0] || '#ff6a00';
+                const color3 = colors[2] || colors[0] || '#ff8c00';
+                const orbitColors = [color, color2, color3];
+                const atomR = Math.min(dimensions.width, dimensions.height) * (atomSize / 100);
+                const orbits = 3;
+                const seed = countryName.length || 5;
                 return (
-                  <path
-                    key={`line-${i}`}
-                    d={`M ${line.x1} ${line.y1} Q ${line.cx} ${line.cy} ${line.x2} ${line.y2}`}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="0.8"
-                    opacity="0.4"
-                  />
-                );
-              })}
-
-              {/* Render Distinct Nodes */}
-              {networkNodesArray.map((node, i) => {
-                const color = colors[i % colors.length];
-                const isTarget = i % 3 === 0; // Some nodes get concentric rings
-                return (
-                  <g key={`node-${i}`}>
-                    {isTarget ? (
-                      <>
-                        <circle cx={node.x} cy={node.y} r={dotSize * 1.8} fill="none" stroke={color} strokeWidth="0.8" opacity="0.8" />
-                        <circle cx={node.x} cy={node.y} r={dotSize * 0.5} fill={color} />
-                      </>
-                    ) : (
-                      <>
-                        <circle cx={node.x} cy={node.y} r={dotSize * 0.8} fill={color} opacity="0.9" />
-                        <circle cx={node.x} cy={node.y} r={dotSize * 2} fill="none" stroke={color} strokeWidth="0.5" opacity="0.3" />
-                      </>
-                    )}
+                  <g filter="url(#atomGlow)">
+                    {/* 3 Orbital ellipses at different angles */}
+                    {Array.from({ length: orbits }).map((_, o) => (
+                      <ellipse
+                        key={`orbit-${o}`}
+                        cx={cx} cy={cy}
+                        rx={atomR} ry={atomR * 0.38}
+                        fill="none" stroke={orbitColors[o % orbitColors.length]}
+                        strokeWidth="1.5"
+                        opacity="0.55"
+                        transform={`rotate(${o * 60}, ${cx}, ${cy})`}
+                      />
+                    ))}
+                    {/* Nucleus — solid circle in center */}
+                    <circle cx={cx} cy={cy} r={atomR * 0.07} fill={color} opacity="0.95" />
+                    <circle cx={cx} cy={cy} r={atomR * 0.12} fill="none" stroke={color} strokeWidth="1" opacity="0.4" />
+                    {/* Electron dots — distributed along the orbits to match joints */}
+                    {Array.from({ length: electronCount }).map((_, i) => {
+                      // Distribute electrons evenly among the orbits
+                      const orbitIndex = i % orbits;
+                      // Determine the parametric angle for this electron on its specific orbit
+                      // If we have 12 electrons and 3 orbits, that's 4 per orbit -> 0, 90, 180, 270 deg.
+                      // The 90 and 270 degree positions naturally align with the orbit intersections near the center.
+                      const electronsPerOrbit = electronCount / orbits;
+                      const baseAngle = (Math.floor(i / orbits) * (360 / electronsPerOrbit));
+                      const angle = ((baseAngle + (orbitIndex * 30) + (seed * 10)) % 360) * (Math.PI / 180);
+                      
+                      const localX = Math.cos(angle) * atomR;
+                      const localY = Math.sin(angle) * atomR * 0.38;
+                      const rad = orbitIndex * 60 * (Math.PI / 180);
+                      const rx = localX * Math.cos(rad) - localY * Math.sin(rad);
+                      const ry = localX * Math.sin(rad) + localY * Math.cos(rad);
+                      
+                      return (
+                        <circle
+                          key={`elec-${i}`}
+                          cx={cx + rx} cy={cy + ry}
+                          r={atomR * 0.025} 
+                          fill={orbitColors[orbitIndex % orbitColors.length]} 
+                          opacity="0.95"
+                        />
+                      );
+                    })}
                   </g>
                 );
-              })}
-
-              {/* Freehand Drawing Lasso Preview */}
-              {currentDrawPath && currentDrawPath.length > 0 && isDrawingNetwork && (
-                <path 
-                  d={generateSvgPolyline(currentDrawPath)}
-                  fill="rgba(236, 72, 153, 0.05)" 
-                  stroke="#ec4899" strokeWidth="2" strokeDasharray="6 4"
-                />
-              )}
-              
-              {/* Permanent Active Lasso Bounds Viewer */}
-              {networkBounds && Array.isArray(networkBounds) && !isDrawingNetwork && (
-                <path 
-                  d={generateSvgPolyline(networkBounds)}
-                  fill="rgba(99, 102, 241, 0.02)" 
-                  stroke="#6366f1" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.4"
-                />
-              )}
+              })()}
             </g>
           )}
 

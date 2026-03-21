@@ -33,7 +33,7 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   
   // 1. Remove unwanted interactive effects
   // Find all paths and remove hover/click specific classes and dynamic filters
-  const paths = Array.from(clone.querySelectorAll('path'));
+  const paths = Array.from(clone.querySelectorAll('path, ellipse, circle, rect, g'));
   paths.forEach(p => {
     p.removeAttribute('class');
     // Remove inline style transforms/filters used for UI feedback
@@ -41,6 +41,9 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
     p.style.filter = '';
     p.style.opacity = ''; // reset opacity if changed by hover
     if (p.getAttribute('style') === '') p.removeAttribute('style');
+    
+    // User requested NO RASTER elements. Remove all filter attributes (like glowing blurs).
+    if (p.hasAttribute('filter')) p.removeAttribute('filter');
   });
 
   // 1.5 Handle Text Conversion or Stripping
@@ -88,12 +91,11 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   }
 
   // 2. Preserve Defs if they contain structural elements (like Gradients)
-  // We remove glow filters as they are not standard stock vector formats, but keep linearGradients.
+  // User requested NO RASTER elements. So we must explicitly remove all <filter> effects since they rasterize in vector tools.
   const defs = clone.querySelector('defs');
   if (defs) {
     const filters = Array.from(defs.querySelectorAll('filter'));
     filters.forEach(f => f.remove());
-    // If defs is now empty, remove it
     if (defs.children.length === 0) defs.remove();
   }
   
@@ -121,23 +123,21 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   const mapRegionsGroup = clone.querySelector('#map-regions');
   if (mapRegionsGroup) {
       const regionGroupOut = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      regionGroupOut.setAttribute('id', 'regions');
+      regionGroupOut.setAttribute('id', 'map-group'); // User requested distinct map group
       
       const regionPaths = Array.from(mapRegionsGroup.querySelectorAll('path'));
       regionPaths.forEach((path, index) => {
         const titleEl = path.querySelector('title');
         const regionName = titleEl ? titleEl.textContent : `region-${index + 1}`;
-        if (titleEl) titleEl.remove(); // remove title to clean up path definition
+        if (titleEl) titleEl.remove();
         
         // Strip data-* attributes from path
         Array.from(path.attributes).forEach(attr => {
            if(attr.name.startsWith('data-')) path.removeAttribute(attr.name);
         });
 
-        // Ensure path id is set for stock organization
         if (!path.getAttribute('id')) path.setAttribute('id', sanitizeId(regionName));
         
-        // Group the individual path
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('id', `layer-${sanitizeId(regionName)}`);
         g.appendChild(path);
@@ -181,15 +181,16 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   
   const mapNetworkGroup = clone.querySelector('#network-overlay');
   if (mapNetworkGroup) {
-      // Create a clean group for the network layer
-      const networkGroupIn = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      networkGroupIn.setAttribute('id', 'network-lines');
+      // Create a clean group for the atom
+      const atomGroupIn = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      atomGroupIn.setAttribute('id', 'atom-group'); // User requested distinct atom group
       
-      const elements = Array.from(mapNetworkGroup.querySelectorAll('path, circle, g'));
-      elements.forEach(el => networkGroupIn.appendChild(el));
+      // Select all geometries inside the atom overlay
+      const elements = Array.from(mapNetworkGroup.querySelectorAll('path, ellipse, circle, g'));
+      elements.forEach(el => atomGroupIn.appendChild(el));
       
-      overlayGroupOut.appendChild(networkGroupIn);
-      hasOverlays = true;
+      // Append directly to main group, not inside overlays, to keep it distinct
+      mainGroup.appendChild(atomGroupIn);
   }
   
   if(hasOverlays) {

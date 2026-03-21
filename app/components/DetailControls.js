@@ -10,13 +10,10 @@ export default function DetailControls({
   stockMode, setStockMode,
   includeIslands, setIncludeIslands,
   dotSize, setDotSize,
-  networkNodeCount,
-  networkLineCount,
-  isDrawingNetwork,
-  setNetworkNodeCount,
-  setNetworkLineCount,
-  setIsDrawingNetwork,
-  setNetworkBounds,
+  atomX, setAtomX,
+  atomY, setAtomY,
+  atomSize, setAtomSize,
+  electronCount, setElectronCount,
   selectedStyle
 }) {
   return (
@@ -81,7 +78,7 @@ export default function DetailControls({
             onClick={() => {
               const next = !stockMode;
               setStockMode(next);
-              if (next) { setDebugMode(false); setBorderWidth(0.5); } // Auto constraint — 0.5px keeps small states visible
+              if (next) { setDebugMode(false); setBorderWidth(0.5); }
             }}
             className={`w-10 h-5 rounded-full p-0.5 transition-colors ${stockMode ? 'bg-emerald-500' : 'bg-gray-600'}`}
           >
@@ -166,58 +163,79 @@ export default function DetailControls({
           </div>
         </div>
       )}
-      {/* Network Settings (Only for Network Style) */}
+
+      {/* Atom Settings (Only for Network Style) */}
       {selectedStyle === 'network' && (
         <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
-          <p className="text-[10px] uppercase text-indigo-400 font-mono tracking-wider mb-2">Network Nodes</p>
+          <p className="text-[10px] uppercase text-indigo-400 font-mono tracking-wider mb-2">⚛️ Atom Controls</p>
           
+          {/* Atom Size Slider */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <p className="text-[10px] text-gray-500 font-mono">Total Nodes</p>
-              <span className="text-[10px] font-mono text-gray-400">{networkNodeCount}</span>
+              <p className="text-[10px] text-gray-500 font-mono">Atom Scale</p>
+              <span className="text-[10px] font-mono text-gray-400">{atomSize}%</span>
             </div>
             <input 
-              type="range" min="0" max="150" step="1" 
-              value={networkNodeCount}
-              onChange={(e) => setNetworkNodeCount(parseInt(e.target.value))}
+              type="range" min="10" max="100" step="1" 
+              value={atomSize}
+              onChange={(e) => setAtomSize(parseInt(e.target.value))}
               className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500"
             />
           </div>
 
+          {/* Atom X Position */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <p className="text-[10px] text-gray-500 font-mono">Connection Lines</p>
-              <span className="text-[10px] font-mono text-gray-400">{networkLineCount}</span>
+              <p className="text-[10px] text-gray-500 font-mono">Horizontal Position</p>
+              <span className="text-[10px] font-mono text-gray-400">{atomX}%</span>
             </div>
             <input 
-              type="range" min="0" max="100" step="1" 
-              value={networkLineCount}
-              onChange={(e) => setNetworkLineCount(parseInt(e.target.value))}
+              type="range" min="10" max="90" step="1" 
+              value={atomX}
+              onChange={(e) => setAtomX(parseInt(e.target.value))}
               className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500"
             />
           </div>
 
-          <div className="pt-2">
-            <button
-              onClick={() => setIsDrawingNetwork(!isDrawingNetwork)}
-              className={`w-full py-2 px-3 rounded text-xs font-semibold transition-colors flex items-center justify-center gap-2 ${
-                isDrawingNetwork 
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                  : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
-              }`}
-            >
-              <span>{isDrawingNetwork ? '❌ Cancel Drawing' : '✏️ Draw Target Area'}</span>
-            </button>
-            <button
-              onClick={() => { setNetworkBounds(null); setIsDrawingNetwork(false); }}
-              className="w-full py-2 px-3 mt-2 rounded text-[10px] text-gray-500 hover:text-gray-300 transition-colors underline decoration-gray-600"
-            >
-              Reset to Full Map
-            </button>
+          {/* Atom Y Position */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-[10px] text-gray-500 font-mono">Vertical Position</p>
+              <span className="text-[10px] font-mono text-gray-400">{atomY}%</span>
+            </div>
+            <input 
+              type="range" min="10" max="90" step="1" 
+              value={atomY}
+              onChange={(e) => setAtomY(parseInt(e.target.value))}
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500"
+            />
           </div>
+
+          {/* Electron Dots Slider */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-[10px] text-gray-500 font-mono">Electron Dots</p>
+              <span className="text-[10px] font-mono text-gray-400">{electronCount}</span>
+            </div>
+            <input 
+              type="range" min="0" max="36" step="1" 
+              value={electronCount}
+              onChange={(e) => setElectronCount(parseInt(e.target.value))}
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500"
+            />
+          </div>
+
+          {/* Center Reset */}
+          <button
+            onClick={() => { setAtomX(50); setAtomY(50); }}
+            className="w-full py-2 px-3 mt-2 rounded text-[10px] text-gray-500 hover:text-gray-300 transition-colors underline decoration-gray-600"
+          >
+            Reset to Center
+          </button>
         </div>
       )}
 
     </div>
   );
 }
+

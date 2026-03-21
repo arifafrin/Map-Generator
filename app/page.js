@@ -27,11 +27,11 @@ export default function Home() {
   const [includeIslands, setIncludeIslands] = useState(true);
   const [dotSize, setDotSize] = useState(3);
   
-  // Network Settings State
-  const [networkNodeCount, setNetworkNodeCount] = useState(30);
-  const [networkLineCount, setNetworkLineCount] = useState(15);
-  const [networkBounds, setNetworkBounds] = useState(null); // {x, y, w, h}
-  const [isDrawingNetwork, setIsDrawingNetwork] = useState(false);
+  // Atom Settings State (for Network style)
+  const [atomX, setAtomX] = useState(50); // percentage 0-100
+  const [atomY, setAtomY] = useState(50); // percentage 0-100
+  const [electronCount, setElectronCount] = useState(12);
+  const [atomSize, setAtomSize] = useState(32); // percentage 10-100
 
   // App State
   const [geoData, setGeoData] = useState(null);
@@ -206,10 +206,10 @@ export default function Home() {
                   stockMode={stockMode} setStockMode={setStockMode}
                   includeIslands={includeIslands} setIncludeIslands={setIncludeIslands}
                   dotSize={dotSize} setDotSize={setDotSize}
-                  networkNodeCount={networkNodeCount} setNetworkNodeCount={setNetworkNodeCount}
-                  networkLineCount={networkLineCount} setNetworkLineCount={setNetworkLineCount}
-                  isDrawingNetwork={isDrawingNetwork} setIsDrawingNetwork={setIsDrawingNetwork}
-                  setNetworkBounds={setNetworkBounds}
+                  atomX={atomX} setAtomX={setAtomX}
+                  atomY={atomY} setAtomY={setAtomY}
+                  electronCount={electronCount} setElectronCount={setElectronCount}
+                  atomSize={atomSize} setAtomSize={setAtomSize}
                   selectedStyle={selectedStyle}
                 />
               )}
@@ -300,12 +300,10 @@ export default function Home() {
                   stockMode={stockMode}
                   includeIslands={includeIslands}
                   dotSize={dotSize}
-                  networkNodeCount={networkNodeCount}
-                  networkLineCount={networkLineCount}
-                  isDrawingNetwork={isDrawingNetwork}
-                  setIsDrawingNetwork={setIsDrawingNetwork}
-                  networkBounds={networkBounds}
-                  setNetworkBounds={setNetworkBounds}
+                  atomX={atomX}
+                  atomY={atomY}
+                  electronCount={electronCount}
+                  atomSize={atomSize}
                 />
              </div>
           ) : null}
