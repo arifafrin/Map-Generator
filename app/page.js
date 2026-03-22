@@ -12,20 +12,21 @@ import { getBeautifulRandomMapCombo, mapStyles, aiColorThemes, countryPalettes }
 import * as isoCountries from 'i18n-iso-countries';
 
 export default function Home() {
-  const [selectedCountry, setSelectedCountry] = useState('USA');
-  const [selectedStyle, setSelectedStyle] = useState('colorful');
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState('');
   const [colors, setColors] = useState(mapStyles.colorful.regionColors);
   const [colorMode, setColorMode] = useState('auto'); // auto, theme-*, random, custom
   
   // Detail Controls State
-  const [bgMode, setBgMode] = useState('style-default'); // style-default, transparent
+  const [bgMode, setBgMode] = useState('style-default'); // style-default, transparent, custom
+  const [customBgColor, setCustomBgColor] = useState('#ffffff');
   const [layout, setLayout] = useState('landscape'); // square, portrait, landscape
   const [showLabels, setShowLabels] = useState(false);
   const [showTitle, setShowTitle] = useState(false);
   const [borderWidth, setBorderWidth] = useState(0.5);
   const [debugMode, setDebugMode] = useState(false);
   const [stockMode, setStockMode] = useState(true);
-  const [includeIslands, setIncludeIslands] = useState(true);
+  const [includeIslands, setIncludeIslands] = useState(false);
   const [dotSize, setDotSize] = useState(3);
   
   // Location Pin State
@@ -66,9 +67,7 @@ export default function Home() {
   // Load Map Data
   useEffect(() => {
     if (!selectedCountry) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     fetch(`/api/geojson?code=${selectedCountry}`)
       .then(res => {
@@ -79,7 +78,8 @@ export default function Home() {
         setGeoData(data);
         if (colorMode === 'auto') {
           const palette = countryPalettes[selectedCountry];
-          setColors(palette ? [...palette.colors] : [...mapStyles[selectedStyle].regionColors]);
+          const fallbackColors = mapStyles[selectedStyle] ? mapStyles[selectedStyle].regionColors : mapStyles.colorful.regionColors;
+          setColors(palette ? [...palette.colors] : [...fallbackColors]);
         }
       })
       .catch(err => {
@@ -92,6 +92,8 @@ export default function Home() {
 
   // Handle Style Switch updates
   useEffect(() => {
+    if (!selectedStyle) return;
+    
     // Styles with distinctive visual identities must use their own palette
     // Generic styles (colorful, minimal) can use the country's cultural palette
     const genericStyles = ['colorful', 'minimal', 'poster'];
@@ -99,15 +101,12 @@ export default function Home() {
     
     if (colorMode !== 'custom' && colorMode !== 'random' && colorMode !== 'blend' && !colorMode.startsWith('theme-')) {
       if (colorMode === 'auto' && isGenericStyle && countryPalettes[selectedCountry]) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setColors([...countryPalettes[selectedCountry].colors]);
       } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setColors([...mapStyles[selectedStyle].regionColors]);
       }
     }
     // Update default border width when switching styles
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBorderWidth(mapStyles[selectedStyle].strokeWidth);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStyle]);
@@ -139,129 +138,115 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[150px]" />
       </div>
 
-      {/* LEFT PANEL */}
-      <aside className="relative z-10 w-[360px] flex-shrink-0 border-r border-white/5 bg-[#0a0a0f]/95 backdrop-blur-2xl flex flex-col h-screen shadow-2xl">
+      {/* MACRO CONTROL CENTER - 3 COLUMN LAYOUT */}
+      <div className="relative z-20 flex flex-shrink-0 h-screen bg-[#0a0a0f]/95 backdrop-blur-2xl shadow-[20px_0_50px_rgba(0,0,0,0.5)]">
         
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" opacity="0.9"/>
-                  <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" opacity="0.6"/>
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-sm font-bold tracking-wide text-white">Vector Map Generator</h1>
-                <p className="text-[10px] text-purple-300 font-medium uppercase tracking-widest mt-0.5">Premium Edition</p>
+        {/* COLUMN 1: HEADER, COUNTRY & STYLES */}
+        <aside className="w-[320px] flex flex-col h-full border-r border-white/5 bg-[#0a0a0f]">
+          {/* Header */}
+          <div className="px-5 py-5 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent shrink-0">
+            <div className="flex items-center justify-between mb-4 mt-2">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" opacity="0.9"/>
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" opacity="0.6"/>
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-sm font-bold tracking-wide text-white">Vector Map Generator</h1>
+                  <p className="text-[10px] text-purple-300 font-medium uppercase tracking-widest mt-0.5">Premium Edition</p>
+                </div>
               </div>
             </div>
             
-            <button 
-              onClick={handleMagicMap}
-              className="px-3 py-1.5 rounded-md bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-500/20 text-orange-400 hover:text-orange-300 text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 flex items-center gap-1"
-               title="I'm Feeling Lucky"
-            >
-              ✨ Magic
-            </button>
+            <CountrySelector
+              countries={countries}
+              selectedCountry={selectedCountry}
+              onSelect={setSelectedCountry}
+            />
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-5">
+             <div className="animate-fade-in pb-8">
+               <StyleSelector
+                 selectedStyle={selectedStyle}
+                 onSelect={setSelectedStyle}
+               />
+             </div>
           </div>
           
-          <CountrySelector
-            countries={countries}
-            selectedCountry={selectedCountry}
-            onSelect={setSelectedCountry}
-          />
-        </div>
-
-        {/* Navigation Tabs */}
-        {geoData && (
-          <div className="flex p-2 bg-[#050508] border-b border-white/5">
-            {['style', 'colors', 'details'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all ${
-                  activeTab === tab
-                    ? 'bg-white/10 text-white shadow-sm'
-                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+          {/* Export System */}
+          <div className="p-5 bg-gradient-to-t from-purple-900/10 to-transparent border-t border-white/5 shrink-0 relative z-50">
+            <ExportControls 
+              svgRef={svgRef} 
+              geoData={geoData}
+              countryName={countryName}
+              selectedStyle={selectedStyle}
+              hasLabels={showLabels}
+              bgMode={bgMode}
+              customBgColor={customBgColor}
+            />
           </div>
-        )}
+          
+          {/* Footer Sub-brand */}
+          <div className="p-4 border-t border-white/5 bg-black/20 shrink-0 text-center text-[10px] text-gray-600 font-mono tracking-widest uppercase">
+            Developed by Arif Hossain
+          </div>
+        </aside>
 
-        {/* Tool Panels */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5">
-          {!geoData ? (
-             <div className="h-full flex flex-col items-center justify-center text-center px-4">
-                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/10">
-                  <span className="text-2xl">🌍</span>
-                </div>
-                <h3 className="text-sm font-semibold text-gray-300 mb-1">No Country Selected</h3>
-                <p className="text-xs text-gray-500 line-height-relaxed">Select a country from the dropdown above to begin generating your custom stock-ready vector map.</p>
+        {/* COLUMN 2: COLORS */}
+        <aside className="w-[320px] flex flex-col h-full border-r border-white/5 bg-[#08080c] animate-slide-in-right">
+          <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01] shrink-0 flex justify-between items-center h-[72px]">
+             <div>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Color Engine</h2>
+                <p className="text-[10px] text-gray-600 mt-1 uppercase">Palette Mapping</p>
              </div>
-          ) : (
-            <div className="space-y-6 animate-fade-in pb-8">
-              {activeTab === 'style' && (
-                <StyleSelector
-                  selectedStyle={selectedStyle}
-                  onSelect={setSelectedStyle}
-                />
-              )}
-              {activeTab === 'colors' && (
-                <ColorControls
-                  selectedCountry={selectedCountry}
-                  colors={colors}
-                  onColorsChange={setColors}
-                  colorMode={colorMode}
-                  onColorModeChange={setColorMode}
-                />
-              )}
-              {activeTab === 'details' && (
-                <DetailControls
-                  bgMode={bgMode} setBgMode={setBgMode}
-                  layout={layout} setLayout={setLayout}
-                  showLabels={showLabels} setShowLabels={setShowLabels}
-                  showTitle={showTitle} setShowTitle={setShowTitle}
-                  borderWidth={borderWidth} setBorderWidth={setBorderWidth}
-                  debugMode={debugMode} setDebugMode={setDebugMode}
-                  stockMode={stockMode} setStockMode={setStockMode}
-                  includeIslands={includeIslands} setIncludeIslands={setIncludeIslands}
-                  dotSize={dotSize} setDotSize={setDotSize}
-                  atomX={atomX} setAtomX={setAtomX}
-                  atomY={atomY} setAtomY={setAtomY}
-                  electronCount={electronCount} setElectronCount={setElectronCount}
-                  atomSize={atomSize} setAtomSize={setAtomSize}
-                  pinEnabled={pinEnabled} setPinEnabled={setPinEnabled}
-                  pinSize={pinSize} setPinSize={setPinSize}
-                  pinColor={pinColor} setPinColor={setPinColor}
-                  selectedStyle={selectedStyle}
-                />
-              )}
-            </div>
-          )}
-        </div>
+             <button onClick={handleMagicMap} className="px-3 py-1.5 rounded-md bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-500/20 text-orange-400 hover:text-orange-300 text-[10px] font-bold uppercase transition-all flex items-center gap-1 active:scale-95" title="Randomize Colors & Layout">✨ Magic</button>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-5 pb-12">
+             <ColorControls
+               selectedCountry={selectedCountry}
+               geoData={geoData}
+               colors={colors}
+               onColorsChange={setColors}
+               colorMode={colorMode}
+               onColorModeChange={setColorMode}
+               bgMode={bgMode} setBgMode={setBgMode}
+               customBgColor={customBgColor} setCustomBgColor={setCustomBgColor}
+               pinColor={pinColor} setPinColor={setPinColor}
+               pinEnabled={pinEnabled}
+             />
+          </div>
+        </aside>
 
-        {/* Footer / Export */}
-        <div className="p-4 bg-gradient-to-t from-[#0a0a0f] to-transparent border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-20">
-            {geoData ? (
-              <ExportControls 
-                svgRef={svgRef} 
-                geoData={geoData}
-                countryName={countryName}
-                selectedStyle={selectedStyle}
-                hasLabels={showLabels}
-              />
-            ) : (
-              <div className="text-center text-[10px] text-gray-600 font-mono tracking-widest pt-2">
-                MADE FOR CREATORS
-              </div>
-            )}
-        </div>
-      </aside>
+        {/* COLUMN 3: DETAILS & EXPORT */}
+        <aside className="w-[340px] flex flex-col h-full border-r border-white/5 bg-[#050508] animate-slide-in-right" style={{animationDelay: '100ms'}}>
+          <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01] shrink-0 h-[72px] flex flex-col justify-center">
+             <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Map Parameters</h2>
+             <p className="text-[10px] text-gray-600 mt-1 uppercase">Advanced Config</p>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-5 pb-8 space-y-6">
+             <DetailControls
+               layout={layout} setLayout={setLayout}
+               showLabels={showLabels} setShowLabels={setShowLabels}
+               showTitle={showTitle} setShowTitle={setShowTitle}
+               borderWidth={borderWidth} setBorderWidth={setBorderWidth}
+               debugMode={debugMode} setDebugMode={setDebugMode}
+               stockMode={stockMode} setStockMode={setStockMode}
+               includeIslands={includeIslands} setIncludeIslands={setIncludeIslands}
+               dotSize={dotSize} setDotSize={setDotSize}
+               atomX={atomX} setAtomX={setAtomX}
+               atomY={atomY} setAtomY={setAtomY}
+               electronCount={electronCount} setElectronCount={setElectronCount}
+               atomSize={atomSize} setAtomSize={setAtomSize}
+               pinEnabled={pinEnabled} setPinEnabled={setPinEnabled}
+               pinSize={pinSize} setPinSize={setPinSize}
+               selectedStyle={selectedStyle}
+             />
+          </div>
+        </aside>
+      </div>
 
       {/* RIGHT PANEL - LIVE PREVIEW */}
       <section className="relative z-10 flex-1 flex flex-col h-screen">
@@ -319,6 +304,7 @@ export default function Home() {
                   onRegionSelect={setSelectedRegion}
                   onSvgRef={handleSvgRef}
                   bgMode={bgMode}
+                  customBgColor={customBgColor}
                   layout={layout}
                   showLabels={showLabels}
                   showTitle={showTitle}

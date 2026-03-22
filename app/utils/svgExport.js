@@ -7,6 +7,7 @@
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import opentype from 'opentype.js';
+import { mapStyles } from './colorUtils';
 
 let cachedFont = null;
 async function loadFont() {
@@ -30,6 +31,16 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   if (!svgElement) return null;
 
   const clone = svgElement.cloneNode(true);
+  
+  const { bgMode, customBgColor, style: styleId } = options;
+  const styleConfig = mapStyles[styleId] || mapStyles.colorful;
+  
+  let finalBgColor = null;
+  if (bgMode === 'custom') {
+      finalBgColor = customBgColor;
+  } else if (bgMode !== 'transparent' && styleConfig.background && styleConfig.background !== 'transparent') {
+      finalBgColor = styleConfig.background;
+  }
   
   // 1. Remove unwanted interactive effects
   // Find all paths and remove hover/click specific classes and dynamic filters
@@ -100,48 +111,84 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   }
   
   // 3. Clean root styles and React specific attributes
+  // Strip all unresolved filter URLs to completely prevent Adobe Illustrator [STEX] parsing exceptions
+  const elementsWithFilters = Array.from(clone.querySelectorAll('[filter]'));
+  elementsWithFilters.forEach(el => el.removeAttribute('filter'));
+  
   clone.removeAttribute('class');
   const attributesToRemove = ['data-reactroot', 'data-reactid', 'data-react-checksum'];
   attributesToRemove.forEach(attr => clone.removeAttribute(attr));
   
-  // Explicitly handle background. If it's transparent, ensure no style prop sets it.
-  if (clone.style.background === 'transparent' || clone.style.background === '') {
-     clone.style.background = '';
-  }
-  if (clone.getAttribute('style') === '') clone.removeAttribute('style');
+  // COMPLETELY NUKE ALL INLINE STYLES GLOBALLY ACROSS ALL NODES!
+  // Adobe Illustrator's vector parser immediately throws an [STEX] fatal crash if it detects browser-computed CSS on ANY nested element.
+  const allDOMNodes = Array.from(clone.querySelectorAll('*'));
+  allDOMNodes.forEach(node => {
+      node.removeAttribute('style');
+      node.removeAttribute('class');
+  });
+  clone.removeAttribute('style');
+  clone.removeAttribute('class');
 
-  // 4. Set explicit XML namespaces
-  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  // 4. Clean root node namespace collisions
+  // We strictly defer namespace formatting directly to the regex string builder explicitly to prevent 
+  // duplicate `xmlns` properties which natively crash Adobe Illustrator with `[STEX]` Unknown Error.
+  // DO NOT remove them here, as doing so forces XMLSerializer to re-inject them on every single child element!
+  
+  // CRITICAL: Adobe Illustrator crashes immediately if width/height are set to percentages like '100%'
+  // We must calculate the strict dimensional pixel bounds from the internal viewBox
+  const vbData = (clone.getAttribute('viewBox') || '0 0 800 600').trim().split(/[\s,]+/);
+  clone.setAttribute('width', vbData[2] || '800');
+  clone.setAttribute('height', vbData[3] || '600');
   
   // 5. Structure Layers cleanly (Stock Requirement)
   const countryGroupId = sanitizeId(countryName || 'country-map');
   const mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   mainGroup.setAttribute('id', countryGroupId);
 
-  // Extract regions group
+  // 5.1 Enforce Physical Solid Background Vector mathematically bound to guaranteed HEX states
+  if (finalBgColor) {
+     const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+     const vb = (clone.getAttribute('viewBox') || '0 0 800 600').trim().split(/[\s,]+/);
+     bgRect.setAttribute('x', vb[0] || '0');
+     bgRect.setAttribute('y', vb[1] || '0');
+     bgRect.setAttribute('width', vb[2] || '800');
+     bgRect.setAttribute('height', vb[3] || '600');
+     bgRect.setAttribute('fill', finalBgColor);
+     bgRect.setAttribute('id', 'Canvas-Background');
+     mainGroup.appendChild(bgRect);
+  }
+
+  // Extract regions group (Preserving structural transforms!)
   const mapRegionsGroup = clone.querySelector('#map-regions');
   if (mapRegionsGroup) {
       const regionGroupOut = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       regionGroupOut.setAttribute('id', 'map-group'); // User requested distinct map group
       
-      const regionPaths = Array.from(mapRegionsGroup.querySelectorAll('path'));
-      regionPaths.forEach((path, index) => {
-        const titleEl = path.querySelector('title');
-        const regionName = titleEl ? titleEl.textContent : `region-${index + 1}`;
-        if (titleEl) titleEl.remove();
-        
-        // Strip data-* attributes from path
-        Array.from(path.attributes).forEach(attr => {
-           if(attr.name.startsWith('data-')) path.removeAttribute(attr.name);
-        });
+      const subGroups = Array.from(mapRegionsGroup.children);
+      subGroups.forEach((subG, groupIndex) => {
+          // Keep the existing group which holds critical translation transforms!
+          const newG = subG.cloneNode(false); // shallow clone `<g>`
+          if (!newG.getAttribute('id')) newG.setAttribute('id', `region-cluster-${groupIndex}`);
+          
+          const regionPaths = Array.from(subG.querySelectorAll('path'));
+          regionPaths.forEach((path, index) => {
+            const titleEl = path.querySelector('title');
+            const regionName = titleEl ? titleEl.textContent : `region-${index + 1}`;
+            if (titleEl) titleEl.remove();
+            
+            // Strip data-* attributes from path
+            Array.from(path.attributes).forEach(attr => {
+               if(attr.name.startsWith('data-')) path.removeAttribute(attr.name);
+            });
 
-        if (!path.getAttribute('id')) path.setAttribute('id', sanitizeId(regionName));
-        
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.setAttribute('id', `layer-${sanitizeId(regionName)}`);
-        g.appendChild(path);
-        regionGroupOut.appendChild(g);
+            if (!path.getAttribute('id')) path.setAttribute('id', sanitizeId(regionName));
+            
+            const pLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            pLayer.setAttribute('id', `layer-${sanitizeId(regionName)}`);
+            pLayer.appendChild(path);
+            newG.appendChild(pLayer);
+          });
+          regionGroupOut.appendChild(newG);
       });
       mainGroup.appendChild(regionGroupOut);
   }
@@ -196,14 +243,18 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   if (mapNetworkGroup) {
       // Create a clean group for the atom
       const atomGroupIn = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      atomGroupIn.setAttribute('id', 'atom-group'); // User requested distinct atom group
-      
-      // Select all geometries inside the atom overlay
-      const elements = Array.from(mapNetworkGroup.querySelectorAll('path, ellipse, circle, g'));
-      elements.forEach(el => atomGroupIn.appendChild(el));
-      
-      // Append directly to main group, not inside overlays, to keep it distinct
+      atomGroupIn.setAttribute('id', 'Atom-Network');
+      Array.from(mapNetworkGroup.children).forEach(el => atomGroupIn.appendChild(el));
       mainGroup.appendChild(atomGroupIn);
+  }
+
+  const mapNeuralMeshGroup = clone.querySelector('#neural-mesh-overlay');
+  if (mapNeuralMeshGroup) {
+      // Create a clean distinct master grouping layer for the Neural Mesh
+      const meshGroupIn = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      meshGroupIn.setAttribute('id', 'Neural-Network-Mesh');
+      Array.from(mapNeuralMeshGroup.children).forEach(el => meshGroupIn.appendChild(el));
+      mainGroup.appendChild(meshGroupIn);
   }
   
   if(hasOverlays) {
@@ -235,10 +286,14 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
         });
         
         // Critical for Illustrator / Old Software compatibility
-        img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', base64data);
-        img.setAttribute('href', base64data);
+        // We MUST use raw 'xlink:href' formatting to avoid DOM duplicate namespace crashes!
+        img.removeAttribute('href');
+        img.setAttribute('xlink:href', base64data);
       } catch (err) {
         console.warn("Failed to embed image as base64:", src);
+        // If flagcdn blocks us via CORS or timeout, Adobe Illustrator will explicitly crash 
+        // reading the external 'href'. We must mathematically wipe the image entirely to save the export pipeline!
+        img.remove();
       }
     }
   }
@@ -306,6 +361,18 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   // 6. Serialize & Format
   const serializer = new XMLSerializer();
   let svgString = serializer.serializeToString(clone);
+  
+  // CRITICAL FIX FOR ADOBE ILLUSTRATOR [STEX] ERROR:
+  // XMLSerializer injects `xmlns="http://www.w3.org/2000/svg"` into every child node if it feels like it.
+  // Illustrator instantly crashes when child nodes have `xmlns` declarations.
+  // We globally strip ALL namespace declarations (xmlns:...)
+  svgString = svgString.replace(/\s+xmlns(:[a-zA-Z0-9-]+)?="[^"]*"/ig, '');
+
+  // Strip other problematic native DOM attributes BUT NEVER strip x and y globally!
+  svgString = svgString.replace(/\s+(xml:space|version)="[^"]*"/ig, '');
+
+  // Inject pristine strict Adobe Illustrator standard header to the root <svg> tag
+  svgString = svgString.replace(/<svg\s*/i, '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" xml:space="preserve" x="0px" y="0px" ');
   
   svgString = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' +
     '<!-- Generator: Vector Map Generator Premium Edition -->\n' +

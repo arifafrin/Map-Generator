@@ -1,10 +1,10 @@
 'use client';
 
-import { useRef, useEffect, useMemo, useState } from 'react';
+import { useRef, useEffect, useMemo, useState, memo } from 'react';
 import { processGeoData } from '../utils/geoUtils';
 import { mapStyles } from '../utils/colorUtils';
 
-export default function MapPreview({ 
+export default memo(function MapPreview({ 
   geoData, 
   style, 
   colors, 
@@ -12,6 +12,7 @@ export default function MapPreview({
   onRegionSelect, 
   onSvgRef,
   bgMode = 'style-default',
+  customBgColor = '#ffffff',
   layout = 'landscape',
   showLabels = false,
   showTitle = true,
@@ -33,6 +34,89 @@ export default function MapPreview({
   const svgRef = useRef(null);
   const [hoveredRegion, setHoveredRegion] = useState(null);
   const [vectorFlagInfo, setVectorFlagInfo] = useState(null);
+
+  const dimensions = useMemo(() => {
+    switch(layout) {
+      case 'square': return { width: 1200, height: 1200 };
+      case 'portrait': return { width: 900, height: 1200 };
+      case 'landscape': 
+      default: return { width: 1200, height: 900 };
+    }
+  }, [layout]);
+
+  // PAN & ZOOM STATE
+  const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // GEO WORKER STATE
+  const [processedData, setProcessedData] = useState({ groups: [], debugBounds: null });
+  const [isProcessingGeo, setIsProcessingGeo] = useState(false);
+  const workerRef = useRef(null);
+
+  // Initialize Worker
+  useEffect(() => {
+    workerRef.current = new Worker(new URL('../workers/geoWorker.js', import.meta.url));
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
+
+  // Reset transform when dimensions or geoData changes
+  useEffect(() => {
+    setTransform({ x: 0, y: 0, k: 1 });
+  }, [geoData, dimensions]);
+
+  // Native wheel event hook to prevent scrolling while zooming
+  useEffect(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      setTransform(prev => {
+        const svgRect = svgEl.getBoundingClientRect();
+        const pointerX = e.clientX - svgRect.left;
+        const pointerY = e.clientY - svgRect.top;
+        
+        const viewBoxW = dimensions.width;
+        const viewBoxH = dimensions.height;
+        const logicalX = (pointerX / svgRect.width) * viewBoxW;
+        const logicalY = (pointerY / svgRect.height) * viewBoxH;
+
+        const newK = Math.max(0.1, Math.min(prev.k * scaleFactor, 30));
+        const ratio = newK / prev.k;
+        
+        const newX = logicalX - (logicalX - prev.x) * ratio;
+        const newY = logicalY - (logicalY - prev.y) * ratio;
+
+        return { x: newX, y: newY, k: newK };
+      });
+    };
+    svgEl.addEventListener('wheel', handleWheel, { passive: false });
+    return () => svgEl.removeEventListener('wheel', handleWheel);
+  }, [dimensions]);
+
+  const handlePointerDown = (e) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+    e.target.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+    const svgRect = svgRef.current.getBoundingClientRect();
+    const logicalDx = ((e.clientX - dragStart.x) / svgRect.width) * dimensions.width;
+    const logicalDy = ((e.clientY - dragStart.y) / svgRect.height) * dimensions.height;
+    
+    setTransform(prev => ({ ...prev, x: prev.x + logicalDx, y: prev.y + logicalDy }));
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handlePointerUp = (e) => {
+    setIsDragging(false);
+    e.target.releasePointerCapture(e.pointerId);
+  };
 
   // Download pure SVG geometry for the flag natively
   useEffect(() => {
@@ -97,14 +181,7 @@ export default function MapPreview({
     }
   }, [countryIso2]);
 
-  const dimensions = useMemo(() => {
-    switch(layout) {
-      case 'square': return { width: 1200, height: 1200 };
-      case 'portrait': return { width: 900, height: 1200 };
-      case 'landscape': 
-      default: return { width: 1200, height: 900 };
-    }
-  }, [layout]);
+  // dimensions moved to the top
 
   useEffect(() => {
     if (svgRef.current && onSvgRef) {
@@ -113,16 +190,51 @@ export default function MapPreview({
   }, [geoData, onSvgRef, dimensions, style, colors, bgMode, showLabels, borderWidth, dotSize, pinEnabled, pinSize, pinColor, countryIso2]);
 
   const styleConfig = mapStyles[style] || mapStyles.colorful;
-  const backgroundColor = stockMode ? '#ffffff' : (bgMode === 'transparent' ? 'transparent' : styleConfig.background);
+  const backgroundColor = bgMode === 'transparent' 
+    ? 'transparent' 
+    : (bgMode === 'custom' ? customBgColor : styleConfig.background);
 
   // Core d3-geo rendering pipeline
-  const { groups, debugBounds } = useMemo(() => {
-    if (!geoData || !geoData.features || geoData.features.length === 0) {
-      return { groups: [], debugBounds: null };
+  // Handle Worker Execution
+  useEffect(() => {
+    if (!geoData || !workerRef.current) {
+      setProcessedData({ groups: [], debugBounds: null });
+      return;
     }
-    const safePadding = stockMode ? 100 : 40;
-    return processGeoData(geoData, dimensions.width, dimensions.height, safePadding, colors, styleConfig, includeIslands);
-  }, [geoData, dimensions, colors, styleConfig, includeIslands, stockMode]);
+    
+    setIsProcessingGeo(true);
+    const msgId = Date.now().toString() + Math.random().toString();
+    
+    const handleMessage = (e) => {
+      if (e.data.msgId === msgId) {
+        if (e.data.error) {
+          console.error("GeoWorker Error:", e.data.error);
+        } else {
+          setProcessedData(e.data.result || { groups: [], debugBounds: null });
+        }
+        setIsProcessingGeo(false);
+        workerRef.current.removeEventListener('message', handleMessage);
+      }
+    };
+    
+    workerRef.current.addEventListener('message', handleMessage);
+    workerRef.current.postMessage({
+      msgId,
+      geoData,
+      width: dimensions.width,
+      height: dimensions.height,
+      padding: stockMode ? 100 : 40, // Re-added stockMode logic for padding
+      colors,
+      styleConfig,
+      includeIslands
+    });
+    
+    return () => {
+      workerRef.current?.removeEventListener('message', handleMessage);
+    };
+  }, [geoData, dimensions, colors, styleConfig, includeIslands, stockMode]); // Added stockMode to dependencies
+
+  const { groups, debugBounds } = processedData;
 
   // Flatten all paths for tooltip lookup
   const allPaths = useMemo(() => groups.flatMap(g => g.paths), [groups]);
@@ -290,6 +402,11 @@ export default function MapPreview({
             <p className="text-xs text-gray-600 mt-1">Choose from the panel on the left</p>
           </div>
         </div>
+      ) : isProcessingGeo && groups.length === 0 ? (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#050505]/40 backdrop-blur-sm">
+           <div className="w-12 h-12 border-[3px] border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_20px_rgba(16,185,129,0.2)]"></div>
+           <p className="text-[11px] uppercase tracking-widest font-bold text-emerald-400 mt-4 animate-pulse">Processing Topology...</p>
+        </div>
       ) : (
         <svg
           ref={svgRef}
@@ -297,14 +414,19 @@ export default function MapPreview({
           height={dimensions.height}
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           xmlns="http://www.w3.org/2000/svg"
-          className="max-w-full max-h-full transition-all duration-500 origin-center"
-          style={{ background: backgroundColor }}
+          className={`max-w-full max-h-full transition-all duration-300 origin-center ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          style={{ background: backgroundColor, touchAction: 'none' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         >
           {defs}
           
+          <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
           {/* Blueprint grid background — renders engineering paper texture */}
           {styleConfig.isBlueprint && (
-            <rect width={dimensions.width} height={dimensions.height} fill="url(#blueprintGrid)" />
+            <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#blueprintGrid)" />
           )}
 
           {/* Render each group (mainland, alaska, hawaii for USA — or single group for others) */}
@@ -385,6 +507,216 @@ export default function MapPreview({
                     })}
                   </g>
                 );
+              })()}
+            </g>
+          )}
+
+          {/* Abstract Global Network Overlay — Neural Point Mesh */}
+          {styleConfig.isNeuralMesh && (
+            <g id="neural-mesh-overlay">
+              {(() => {
+                 // 1. Gather all state/region centroids as indestructible primary anchor nodes
+                 const nodes = [];
+                 allPaths.forEach((p) => {
+                     // Always prioritize the native D3 mathematical spherical center
+                     if (p && p.centroid && p.centroid.x && p.centroid.y) {
+                         nodes.push({ x: p.centroid.x, y: p.centroid.y, regionIdx: p.index, isCentroid: true });
+                     } else if (p && p.d) {
+                         // FAILSAFE: Unconditionally compute absolute center via raw SVG geographic boundaries
+                         const coords = p.d.match(/-?[\d.]+/g);
+                         if (coords && coords.length >= 2) {
+                             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                             for (let i = 0; i < coords.length; i += 2) {
+                                 const nx = parseFloat(coords[i]);
+                                 const ny = parseFloat(coords[i + 1]);
+                                 if (nx < minX) minX = nx;
+                                 if (ny < minY) minY = ny;
+                                 if (nx > maxX) maxX = nx;
+                                 if (ny > maxY) maxY = ny;
+                             }
+                             if (minX !== Infinity) {
+                                 const absoluteX = (minX + maxX) / 2;
+                                 const absoluteY = (minY + maxY) / 2;
+                                 nodes.push({ x: absoluteX, y: absoluteY, regionIdx: p.index, isCentroid: true });
+                             }
+                         }
+                     }
+                 });
+                 
+                 // 2. Extract perimeter vertices to perfectly outline the active geographic territory
+                 const perimeters = [];
+                 const polygons = [];
+                 let globalMinX = Infinity, globalMinY = Infinity, globalMaxX = -Infinity, globalMaxY = -Infinity;
+
+                 allPaths.forEach(p => {
+                     if (!p.d) return;
+                     // Extract discrete Line and Move coordinate pairs from the raw SVG string
+                     const matches = p.d.match(/[ML]\s*(-?[\d.]+)[,\s]+(-?[\d.]+)/g);
+                     if (matches && matches.length > 0) {
+                         const vertices = [];
+                         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                         
+                         // Radically increase boundary extraction resolution so the strict map silhouette is perfectly preserved
+                         const step = Math.max(1, Math.floor(matches.length / 500));
+                         
+                         for (let i = 0; i < matches.length; i++) {
+                             const coords = matches[i].match(/-?[\d.]+/g);
+                             if (coords && coords.length >= 2) {
+                                 const x = parseFloat(coords[0]), y = parseFloat(coords[1]);
+                                 vertices.push({x, y});
+                                 if (x < minX) minX = x; if (y < minY) minY = y;
+                                 if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+                                 if (x < globalMinX) globalMinX = x; if (y < globalMinY) globalMinY = y;
+                                 if (x > globalMaxX) globalMaxX = x; if (y > globalMaxY) globalMaxY = y;
+                                 
+                                 // Forcefully push highly dense perimeter dots (culling will organically space them)
+                                 if (i % step === 0) perimeters.push({ x, y, regionIdx: p.index });
+                             }
+                         }
+                         polygons.push({ vertices, minX, minY, maxX, maxY, regionIdx: p.index });
+                     }
+                 });
+
+                 // 3. Internally matrix-fill massive continuous regions utilizing Ray-Casting Polygon math
+                 const internalMatrix = [];
+                 if (globalMinX !== Infinity && globalMaxX !== -Infinity) {
+                     const gridStep = Math.max(12, atomSize * 0.6); // Drives visual node gap tightly 
+                     for (let gx = globalMinX; gx <= globalMaxX; gx += gridStep) {
+                         for (let gy = globalMinY; gy <= globalMaxY; gy += gridStep) {
+                             
+                             // Introduce microscopic grid jitter for a truly organic matrix alignment
+                             const pseudoRandX = Math.abs(Math.sin(gx * 12.9 + gy * 78.2)) * 437.5;
+                             const pseudoRandY = Math.abs(Math.cos(gx * 4.1 + gy * 43.1)) * 437.5;
+                             const jX = gx + (pseudoRandX % 1 - 0.5) * (gridStep * 0.8);
+                             const jY = gy + (pseudoRandY % 1 - 0.5) * (gridStep * 0.8);
+
+                             // Hyper-fast raycast math matching
+                             let matchedRegion = null;
+                             for (let poly of polygons) {
+                                 // Instantly reject points violating crude structural bounding box
+                                 if (jX < poly.minX || jX > poly.maxX || jY < poly.minY || jY > poly.maxY) continue;
+                                 let inside = false;
+                                 for (let i = 0, j = poly.vertices.length - 1; i < poly.vertices.length; j = i++) {
+                                     const xi = poly.vertices[i].x, yi = poly.vertices[i].y;
+                                     const xj = poly.vertices[j].x, yj = poly.vertices[j].y;
+                                     const intersect = ((yi > jY) !== (yj > jY)) && (jX < (xj - xi) * (jY - yi) / (yj - yi) + xi);
+                                     if (intersect) inside = !inside;
+                                 }
+                                 if (inside) {
+                                     matchedRegion = poly.regionIdx;
+                                     break;
+                                 }
+                             }
+                             if (matchedRegion !== null) {
+                                 internalMatrix.push({ x: jX, y: jY, regionIdx: matchedRegion, isCentroid: false });
+                             }
+                         }
+                     }
+                 }
+                 
+                 // Aggregate and apply strict spatial distance culling (Pythagorean Overlap Prevention)
+                 // Critically preserve Coastlines by culling internal dots if they breach perimeter space!
+                 const rawNodes = [...nodes, ...perimeters, ...internalMatrix];
+                 const finalNodes = [];
+                 // Cull distance derived seamlessly from user UI Density slider (atomSize)
+                 const cullDist = atomSize * 0.5;
+                 
+                 for (let pt of rawNodes) {
+                     let tooClose = false;
+                     for (let f of finalNodes) {
+                         const dx = pt.x - f.x;
+                         const dy = pt.y - f.y;
+                         if (Math.sqrt(dx*dx + dy*dy) < cullDist) { 
+                            // Centroids are geometrically critical, always preserve them
+                            if (!pt.isCentroid) tooClose = true; 
+                            break; 
+                         }
+                     }
+                     if (!tooClose) finalNodes.push(pt);
+                 }
+
+                 // 3. Draw Constrained Interaction Beams (Triangular connections)
+                 // Beam reach derived from UI Connectivity slider (electronCount)
+                 const connectDist = cullDist * (1.2 + (electronCount / 8));
+                 const lines = [];
+                 
+                 for (let i = 0; i < finalNodes.length; i++) {
+                     for (let j = i + 1; j < finalNodes.length; j++) {
+                         const n1 = finalNodes[i];
+                         const n2 = finalNodes[j];
+                         const dx = n1.x - n2.x;
+                         const dy = n1.y - n2.y;
+                         const dist = Math.sqrt(dx*dx + dy*dy);
+                         
+                         if (dist < connectDist) {
+                             const distSq = dist * dist;
+                             // Gabriel Graph Core condition:
+                             // Imagine a geometric circle whose diameter is exactly the line connecting n1 and n2.
+                             // If ANY other node (n3) exists inside that circle, this connection is blocked!
+                             // This mathematically guarantees a 100% clean, non-intersecting triangular planar graph!
+                             const midX = n1.x - (dx / 2.0);
+                             const midY = n1.y - (dy / 2.0);
+                             const radSq = distSq / 4.0;
+                             
+                             let isPlanar = true;
+                             for (let k = 0; k < finalNodes.length; k++) {
+                                 if (k === i || k === j) continue;
+                                 const n3 = finalNodes[k];
+                                 
+                                 // Blazing fast generic bounding-box reject to save intense CPU floating-point calculations
+                                 if (Math.abs(n3.x - midX) > dist || Math.abs(n3.y - midY) > dist) continue;
+                                 
+                                 if (((n3.x - midX)**2 + (n3.y - midY)**2) <= radSq) {
+                                     isPlanar = false;
+                                     break;
+                                 }
+                             }
+                             
+                             if (isPlanar) {
+                                 // Subtle alpha decay for aesthetic depth, but keep lines uniformly thick
+                                 const opacity = Math.max(0.15, 1 - (dist / connectDist));
+                                 
+                                 const baseBorder = borderWidth > 0 ? borderWidth : 0.8;
+    
+                                 // Inherit explicit state/country palette color
+                                 const regionColor = colors[(n1.regionIdx || 0) % (colors.length || 1)] || '#888';
+                                 
+                                 lines.push(
+                                    <line 
+                                       key={`mesh-ln-${i}-${j}`} 
+                                       x1={n1.x} y1={n1.y} x2={n2.x} y2={n2.y} 
+                                       stroke={regionColor} 
+                                       strokeWidth={baseBorder}
+                                       opacity={opacity}
+                                    />
+                                 );
+                             }
+                         }
+                     }
+                 }
+
+                 return (
+                    <g className="pointer-events-none transition-all duration-500">
+                      <g id="mesh-lines">{lines}</g>
+                      <g id="mesh-nodes">
+                        {finalNodes.map((n, i) => {
+                           const regionColor = colors[(n.regionIdx || 0) % (colors.length || 1)] || '#888';
+                           const baseRadius = dotSize > 0 ? dotSize : 2.5;
+
+                           return (
+                               <circle 
+                                  key={`mesh-nd-${i}`} 
+                                  cx={n.x} cy={n.y} 
+                                  r={baseRadius} 
+                                  fill={regionColor} 
+                                  stroke="#ffffff"
+                                  strokeWidth={borderWidth > 0 ? borderWidth * 0.5 : 0.5}
+                               />
+                           );
+                        })}
+                      </g>
+                    </g>
+                 );
               })()}
             </g>
           )}
@@ -475,8 +807,8 @@ export default function MapPreview({
                       {/* Right Half (darker fold effect using exact same arc path subset) */}
                       <path d="M0,-8 A8,8 0 0,1 8,0 C8,0 8,8 0,16 Z" fill="#000000" opacity="0.15" />
                       
-                      {/* White inner circle framing the flag centered precisely in the top arc */}
-                      <circle cx="0" cy="0" r="6" fill="#ffffff" />
+                      {/* Dynamic inner circle so it contrasts perfectly if the outer shape is white */}
+                      <circle cx="0" cy="0" r="6" fill={pinColor?.toLowerCase() === '#ffffff' || pinColor?.toLowerCase() === '#fff' ? '#111827' : '#ffffff'} />
                       
                       {/* Inner border to separate flag from white frame */}
                       <circle cx="0" cy="0" r="5" fill="none" stroke="#e5e7eb" strokeWidth="0.5" />
@@ -545,6 +877,7 @@ export default function MapPreview({
               ))}
             </g>
           )}
+          </g>
         </svg>
       )}
 
@@ -556,4 +889,4 @@ export default function MapPreview({
       )}
     </div>
   );
-}
+});

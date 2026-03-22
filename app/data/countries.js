@@ -5,8 +5,14 @@
  */
 
 const countries = [
-  // ─── GLOBAL ───────────────────────────────────────────────
+  // ─── GLOBAL & CONTINENTS ────────────────────────────────
   { code: 'WLD', name: 'World Map', continent: 'Global', flag: '🌍' },
+  { code: 'AFR', name: 'Africa Continent', continent: 'Global', flag: '🌍' },
+  { code: 'ASI', name: 'Asia Continent', continent: 'Global', flag: '🌍' },
+  { code: 'EUR', name: 'Europe Continent', continent: 'Global', flag: '🌍' },
+  { code: 'NOA', name: 'North America Continent', continent: 'Global', flag: '🌍' },
+  { code: 'SAM', name: 'South America Continent', continent: 'Global', flag: '🌍' },
+  { code: 'OCE', name: 'Oceania Continent', continent: 'Global', flag: '🌍' },
 
   // ─── AFRICA ───────────────────────────────────────────────
   { code: 'DZA', name: 'Algeria', continent: 'Africa', flag: '🇩🇿' },

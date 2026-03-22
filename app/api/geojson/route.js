@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import countriesList from '../../data/countries';
 
 /**
  * API route to fetch GeoJSON data for a given country code.
@@ -97,6 +98,35 @@ export async function GET(request) {
        if (globalData && validateGeoJSON(globalData)) {
          console.log(`[GeoJSON API] ✓ WLD requested, returning full world map (${globalData.features.length} countries)`);
          return NextResponse.json(globalData);
+       }
+    }
+
+    // 0.5 Continent fast-path
+    const continentMap = {
+      'AFR': 'Africa',
+      'ASI': 'Asia',
+      'EUR': 'Europe',
+      'NOA': 'North America',
+      'SAM': 'South America',
+      'OCE': 'Oceania'
+    };
+
+    if (continentMap[code]) {
+       const globalData = loadGlobalDataset();
+       if (globalData && validateGeoJSON(globalData)) {
+           const targetContinent = continentMap[code];
+           // Find all ISO codes that belong to this continent from our trusted list
+           const validCodes = countriesList.filter(c => c.continent === targetContinent).map(c => c.code);
+           
+           const features = globalData.features.filter(f => {
+              const p = f.properties;
+              return validCodes.includes(p.ISO_A3) || validCodes.includes(p.ADM0_A3);
+           });
+           
+           if (features.length > 0) {
+              console.log(`[GeoJSON API] ✓ Continent ${targetContinent} requested, returning ${features.length} countries`);
+              return NextResponse.json({ type: 'FeatureCollection', features });
+           }
        }
     }
 

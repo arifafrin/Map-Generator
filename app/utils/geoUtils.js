@@ -60,36 +60,43 @@ export function featureArea(feature) {
  * that cause scattered dots. Keeps sub-polygons above the area threshold.
  */
 function cleanMultiPolygon(feature, minAreaFraction = 0.001) {
-  // CRITICAL FIX: Exempt Alaska entirely to prevent topological destruction on antimeridian.
-  // Allow Hawaii to be cleaned to remove tiny Northwestern Atolls.
-  if (isAlaska(feature)) return feature;
-  
   if (!feature.geometry || feature.geometry.type !== 'MultiPolygon') return feature;
   
   const polygons = feature.geometry.coordinates;
   if (polygons.length <= 1) return feature;
 
-  // Calculate area of each sub-polygon using its exterior ring
+  // Utilize a fast Cartesian Bounding Box Area approach.
+  // This physically calculates the pixel visual footprint, perfectly bypassing 
+  // d3-geo's Spherical Math bugs on Antimeridian shapes (like the Aleutian Islands).
   const polygonAreas = polygons.map((coords, i) => {
-    // Only pass the exterior ring to featureArea to get the true geographic size
-    const exteriorRingOnly = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords[0]] } };
-    return { index: i, area: featureArea(exteriorRingOnly), coords };
+    const ring = coords[0];
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let j = 0; j < ring.length; j++) {
+      const x = ring[j][0];
+      const y = ring[j][1];
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+    // Extremely safe generic Cartesian area footprint
+    const area = (maxX - minX) * (maxY - minY);
+    return { index: i, area, coords };
   });
 
-  // Find the largest polygon's area
+  // Find the largest sub-polygon's footprint
   const maxArea = Math.max(...polygonAreas.map(p => p.area));
   if (maxArea === 0) return feature;
 
-  // Keep polygons that are at least minAreaFraction of the largest
+  // Keep polygons that are visually significant (at least minAreaFraction of the mainland)
   const filtered = polygonAreas.filter(p => p.area >= maxArea * minAreaFraction);
 
-  if (filtered.length === 0) return feature; // Safety: don't remove everything
+  if (filtered.length === 0) return feature; // Safety fallback
 
   return {
     ...feature,
     geometry: {
       type: filtered.length === 1 ? 'Polygon' : 'MultiPolygon',
-      // We return the entirely intact 'coords' array which includes [exteriorRing, hole1, hole2...]
       coordinates: filtered.length === 1 ? filtered[0].coords : filtered.map(p => p.coords),
     }
   };
@@ -99,9 +106,12 @@ function cleanMultiPolygon(feature, minAreaFraction = 0.001) {
  * For non-USA countries: single projection fitted to canvas.
  */
 function createSimpleProjection(geoData, width, height, padding = 40) {
+  const center = geoCentroid(geoData);
+  
   // Use fitExtent to explicitly define the bounding box including padding
-  // [ [left, top], [right, bottom] ]
+  // We rotate the map so the dateline doesn't intersect scaling calculations
   const projection = geoMercator()
+    .rotate([-center[0], 0])
     .fitExtent([
       [padding, padding], 
       [width - padding, height - padding]

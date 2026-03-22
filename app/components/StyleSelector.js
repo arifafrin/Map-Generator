@@ -1,21 +1,61 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { mapStyles } from '../utils/colorUtils';
 
 export default function StyleSelector({ selectedStyle, onSelect }) {
   const styles = Object.values(mapStyles);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownRef]);
+
+  const activeStyle = mapStyles[selectedStyle];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-          Premium Style
-        </label>
-        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-          19 Styles
+    <div className="relative" ref={dropdownRef}>
+      <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+        Map Style
+      </label>
+      
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/50 transition-all duration-300 text-left group"
+      >
+        <span className="flex items-center gap-3">
+          <span className="text-xl">{activeStyle ? activeStyle.icon : '🎨'}</span>
+          <span className="text-sm font-medium text-gray-200">
+            {activeStyle ? activeStyle.name : 'Choose Map Style'}
+          </span>
         </span>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-[105%] md:w-[320px] left-0 mt-2 p-3 rounded-xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-emerald-500/10 max-h-[500px] overflow-y-auto custom-scrollbar">
+          <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              Select Map Style
+            </span>
+            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
+              {styles.length} Styles
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
         {styles.map(style => {
           const isSelected = selectedStyle === style.id;
           return (
@@ -44,10 +84,12 @@ export default function StyleSelector({ selectedStyle, onSelect }) {
                   <div key={i} className="h-full flex-1 border-r border-white/5 last:border-0" style={{ backgroundColor: col }} />
                 ))}
               </div>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+        </div>
+      )}
     </div>
   );
 }

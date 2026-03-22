@@ -96,7 +96,7 @@ export const mapStyles = {
     background: '#ff2a2a',
     stroke: '#000000', strokeWidth: 1,
     fontColor: '#ffffff', fontFamily: 'Futura, sans-serif',
-    regionColors: ['#ffffff', '#000000', '#ffcc00', '#0033cc', '#ff99cc', '#00ffcc'],
+    regionColors: ['#ff0055', '#9900ff', '#ffcc00', '#0033cc', '#ff99cc', '#00ffcc'],
   },
   silhouette: {
     id: 'silhouette', name: 'Solid Black Silhouette', icon: '⬛',
@@ -195,6 +195,15 @@ export const mapStyles = {
     isDotted: true,
     isNetwork: true,
     regionColors: ['#ff4500', '#ff6a00', '#ff8c00', '#ffa500', '#ff7f50', '#ffb380'],
+  },
+  neuralmesh: {
+    id: 'neuralmesh', name: 'Neural Point Mesh', icon: '🕸️',
+    background: '#ffffff',
+    stroke: '#e5e7eb', strokeWidth: 1, // Clean visible light-gray borders
+    fontColor: '#111111', fontFamily: 'Courier New, monospace',
+    isNeuralMesh: true,
+    isOutlineOnly: true, // Forces the actual region shapes to be completely transparent
+    regionColors: aiColorThemes.vibrant, // The mesh dots and lines exclusively use this palette!
   },
 };
 

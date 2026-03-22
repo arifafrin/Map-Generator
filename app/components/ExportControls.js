@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { downloadSVGFile, generatePNGBlob, buildStockReadySVG, downloadZIPPackage } from '../utils/svgExport';
-import MetadataPanel from './MetadataPanel';
 import { generateMetadataSet } from '../utils/seoUtils';
 import { mapStyles, aiColorThemes } from '../utils/colorUtils';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 
-export default function ExportControls({ svgRef, geoData, countryName, selectedStyle, hasLabels }) {
+export default function ExportControls({ svgRef, geoData, countryName, selectedStyle, hasLabels, bgMode, customBgColor }) {
   const [isExporting, setIsExporting] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const [exportedSignatures, setExportedSignatures] = useState(new Set());
   
   // Custom overriding metadata state locally before ZIP
@@ -22,6 +22,16 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
         setCurrentMetadata(generateMetadataSet(countryName, selectedStyle, hasLabels));
      }
   };
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+         setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownRef]);
 
   const getSaneFileName = () => {
     const cName = countryName ? countryName.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'map';
@@ -52,14 +62,13 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
     try {
       // Use locally edited metadata or generate fresh
       const meta = currentMetadata || generateMetadataSet(countryName, selectedStyle, hasLabels);
-      await downloadZIPPackage(svgRef, meta, getSaneFileName());
+      await downloadZIPPackage(svgRef, meta, getSaneFileName(), { bgMode, customBgColor, style: selectedStyle });
       setExportedSignatures(prev => new Set(prev).add(signature));
     } catch (err) {
       console.error("Export failed:", err);
       alert("Failed to export Zip package. Check console for details.");
     } finally {
       setIsExporting(false);
-      setShowPreview(false);
     }
   };
 
@@ -69,7 +78,9 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
     setIsExporting(true);
     
     // Process SVG identically for stock readiness
-    const svgString = await buildStockReadySVG(svgRef, countryName, { stripLabels: false });
+    const svgString = await buildStockReadySVG(svgRef, countryName, { 
+      stripLabels: false, bgMode, customBgColor, style: selectedStyle 
+    });
     downloadSVGFile(svgString, `${getSaneFileName()}.svg`);
     
     setIsExporting(false);
@@ -99,26 +110,24 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
      }
 
      setIsExporting(true);
-     setShowPreview(false); // Hide standard preview
      
      try {
        const zip = new JSZip();
        const baseName = countryName ? countryName.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'map';
-       const stockFolder = zip.folder(`${baseName}-premium-10-pack`);
+       const stockFolder = zip.folder(`${baseName}-premium-all-styles-pack`);
        
-       // Cycle through 10 distinct, highly marketable aesthetic combinations
-       const variations = [
-          { name: '01-BestSeller-Minimal', styleId: 'minimal', colors: mapStyles.minimal.regionColors, bg: '#ffffff', strokeWidth: 1 },
-          { name: '02-Monochrome-Print', styleId: 'monochrome', colors: mapStyles.monochrome.regionColors, bg: '#ffffff', strokeWidth: 1 },
-          { name: '03-Trending-Vibrant', styleId: 'colorful', colors: aiColorThemes.vibrant, bg: '#ffffff', strokeWidth: 1 },
-          { name: '04-Soft-Pastel-Wash', styleId: 'watercolor', colors: mapStyles.watercolor.regionColors, bg: '#ffffff', strokeWidth: 1 },
-          { name: '05-Vintage-Editorial', styleId: 'vintage', colors: mapStyles.vintage.regionColors, bg: '#f4ecd8', strokeWidth: 1 },
-          { name: '06-Clean-Outline', styleId: 'outline', colors: ['transparent'], bg: '#ffffff', strokeWidth: 1 },
-          { name: '07-Antique-Travel', styleId: 'antique', colors: mapStyles.antique.regionColors, bg: '#d4b483', strokeWidth: 0.8 },
-          { name: '08-Heat-Map-Dataviz', styleId: 'heatmap', colors: mapStyles.heatmap.regionColors, bg: '#ffffff', strokeWidth: 0.5 },
-          { name: '09-Solid-Silhouette', styleId: 'silhouette', colors: mapStyles.silhouette.regionColors, bg: '#ffffff', strokeWidth: 0 },
-          { name: '10-Pastel-Flat-Trendy', styleId: 'pastelflat', colors: mapStyles.pastelflat.regionColors, bg: '#ffffff', strokeWidth: 0.6 },
-       ];
+       // Cycle through all defined styles dynamically
+       const variations = Object.entries(mapStyles).map(([styleId, styleDef], idx) => {
+           const prefix = String(idx + 1).padStart(2, '0');
+           const cleanName = styleDef.name.replace(/[^a-zA-Z0-9]/g, '');
+           return {
+               name: `${prefix}-${cleanName}`,
+               styleId: styleId,
+               colors: styleDef.regionColors,
+               bg: styleDef.background === 'transparent' ? '#ffffff' : styleDef.background,
+               strokeWidth: styleDef.strokeWidth !== undefined ? styleDef.strokeWidth : 1
+           };
+       });
        
        for(let v of variations) {
            const subFolder = stockFolder.folder(v.name);
@@ -155,7 +164,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
        }
        
        const content = await zip.generateAsync({ type: 'blob' });
-       saveAs(content, `${baseName}-premium-10-collection.zip`);
+       saveAs(content, `${baseName}-premium-all-styles-pack.zip`);
        setExportedSignatures(prev => new Set(prev).add(bulkSignature));
        
      } catch (err) {
@@ -167,18 +176,33 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
   };
 
   return (
-    <>
-      <div className="flex flex-col gap-2">
+    <div className="relative" ref={dropdownRef}>
+      <div className="flex flex-col gap-2 relative z-50">
+        
+        {isOpen && geoData && (
+          <div className="absolute bottom-full mb-3 left-0 w-full p-2 bg-[#0d0d14] border border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] rounded-xl flex flex-col gap-1 z-50 animate-fade-in origin-bottom">
+            <button onClick={() => { setIsOpen(false); handleSvgExport(); }} className="py-3 px-4 rounded-lg bg-white/5 hover:bg-purple-500/20 text-left text-[11px] font-bold uppercase tracking-wider text-gray-200 transition-colors flex items-center gap-3">
+              <span className="text-purple-400 text-lg">✒️</span> Vector Format (SVG)
+            </button>
+            <button onClick={() => { setIsOpen(false); handlePngExport(); }} className="py-3 px-4 rounded-lg bg-white/5 hover:bg-blue-500/20 text-left text-[11px] font-bold uppercase tracking-wider text-gray-200 transition-colors flex items-center gap-3">
+              <span className="text-blue-400 text-lg">🖼️</span> Image Format (PNG)
+            </button>
+            <button onClick={() => { setIsOpen(false); handleStockZipExport(); }} className="py-3 px-4 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-left text-[11px] font-bold uppercase tracking-wider text-gray-200 transition-colors flex items-center gap-3 border border-emerald-500/10">
+              <span className="text-emerald-400 text-lg">📦</span> Download Both (ZIP)
+            </button>
+          </div>
+        )}
+
         <button
           onClick={() => {
              initializeMetadata();
-             setShowPreview(true);
+             setIsOpen(!isOpen);
           }}
           disabled={!geoData || isExporting}
           className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
             !geoData || isExporting
               ? 'bg-gray-800 text-gray-500 cursor-not-allowed shadow-none'
-              : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white shadow-purple-500/25 hover:shadow-purple-500/40 hover:-translate-y-0.5'
+              : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.25)] hover:shadow-[0_0_40px_rgba(168,85,247,0.6)] hover:-translate-y-1'
           }`}
         >
           {isExporting ? (
@@ -188,10 +212,10 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
             </>
           ) : (
             <>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <svg className="w-5 h-5 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Export Stock Package
+              Export
             </>
           )}
         </button>
@@ -202,102 +226,14 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
           className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all border flex items-center justify-center gap-2 shadow-lg ${
             !geoData || isExporting
               ? 'bg-transparent border-gray-800 text-gray-700 cursor-not-allowed hidden'
-              : 'bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-orange-500/30 text-orange-400 hover:from-orange-500/20 hover:to-pink-500/20 hover:border-orange-500/60 shadow-orange-500/10 hover:shadow-orange-500/20'
+              : 'bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-orange-500/30 text-orange-400 hover:from-orange-500/20 hover:to-pink-500/20 hover:border-orange-500/60 shadow-[0_0_15px_rgba(249,115,22,0.1)] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] hover:-translate-y-0.5'
           }`}
-          title="Generates 10 distinct top-selling aesthetic variations in one MEGA ZIP."
+          title={`Generates all ${Object.keys(mapStyles).length} distinct aesthetic variations in one MEGA ZIP.`}
         >
           <span className="text-xl -mt-1">🚀</span>
-          Generate 10 Variations
+          Generate {Object.keys(mapStyles).length} Styles
         </button>
       </div>
-
-      {/* Export Review Modal */}
-      {showPreview && geoData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0a0a0f] border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            
-            <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/[0.02]">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <span className="text-purple-400">📦</span> Stock Export Review
-              </h2>
-              <button 
-                onClick={() => setShowPreview(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-gray-400 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar flex">
-              
-              {/* Left Column: Metadata Panel */}
-              <div className="w-1/2 p-6 border-r border-white/5 bg-black/20 flex flex-col gap-6">
-                <div>
-                  <h3 className="text-sm font-semibold text-emerald-400 mb-2 flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Stock Ready Vector
-                  </h3>
-                  <ul className="space-y-2 text-xs text-gray-400">
-                    <li className="flex gap-2"><span className="text-purple-400">✓</span> No inline CSS React styles</li>
-                    <li className="flex gap-2"><span className="text-purple-400">✓</span> Organized layer {'<g>'} groups</li>
-                    <li className="flex gap-2"><span className="text-purple-400">✓</span> High-res 300dpi Preview PNG</li>
-                    <li className="flex gap-2"><span className="text-purple-400">✓</span> Zero copyright data / logos</li>
-                  </ul>
-                </div>
-
-                <div className="flex-1">
-                  <MetadataPanel 
-                    countryName={countryName}
-                    styleId={selectedStyle}
-                    hasLabels={hasLabels}
-                    onMetadataChange={(meta) => setCurrentMetadata(meta)}
-                  />
-                </div>
-              </div>
-
-              {/* Right Column: Mini Preview & Downloads */}
-              <div className="w-1/2 p-6 flex flex-col gap-6">
-                
-                <div className="bg-black/40 rounded-xl aspect-video border border-white/5 flex items-center justify-center overflow-hidden relative">
-                  <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur rounded text-[9px] uppercase font-mono tracking-widest text-gray-400">
-                    Aspect Render
-                  </div>
-                  {/* Miniature clone of current svg simply scaled down visually */}
-                  <div className="w-3/4 h-3/4 flex items-center justify-center opacity-80" dangerouslySetInnerHTML={{ __html: svgRef ? new XMLSerializer().serializeToString(svgRef) : '' }} style={{ pointerEvents: 'none' }} />
-                </div>
-                
-                <div className="flex flex-col gap-3 mt-auto">
-                    <button
-                      onClick={handleStockZipExport}
-                      className="w-full py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20"
-                    >
-                      ↓ Download Complete Stock ZIP
-                    </button>
-                    
-                    <div className="flex gap-3">
-                      <button
-                        onClick={handleSvgExport}
-                        className="flex-1 py-3 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 hover:border-white/20"
-                      >
-                        SVG Only
-                      </button>
-                      <button
-                        onClick={handlePngExport}
-                        className="flex-1 py-3 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 hover:border-white/20"
-                      >
-                        PNG Only
-                      </button>
-                    </div>
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }
