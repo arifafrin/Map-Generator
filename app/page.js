@@ -319,7 +319,7 @@ export default function Home() {
               <p className="text-xs text-gray-500 leading-relaxed">{error}</p>
               <p className="text-[10px] text-gray-600 mt-2">Try selecting a different country, or check your internet connection for CDN fallback.</p>
             </div>
-          ) : geoData ? (
+          ) : (geoData || mapStyles[selectedStyle]?.isPencil) ? (
              <div className="relative z-10 rounded-xl overflow-hidden shadow-2xl transition-all duration-500 border border-white/5" style={{
                 // Add soft drop shadow based on styling
                 boxShadow: bgMode === 'transparent' ? 'none' : '0 25px 50px -12px rgba(0, 0, 0, 0.75)'
@@ -338,7 +338,7 @@ export default function Home() {
                   showTitle={showTitle}
                   borderWidth={borderWidth}
                   debugMode={debugMode}
-                  countryName={countryName}
+                  countryName={countryName || 'Custom'}
                   stockMode={stockMode}
                   includeIslands={includeIslands}
                   dotSize={dotSize}

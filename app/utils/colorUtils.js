@@ -205,6 +205,26 @@ export const mapStyles = {
     isOutlineOnly: true, // Forces the actual region shapes to be completely transparent
     regionColors: aiColorThemes.vibrant, // The mesh dots and lines exclusively use this palette!
   },
+  pencilmesh: {
+    id: 'pencilmesh', name: 'Custom Draw (Neural)', icon: '✏️',
+    background: '#ffffff',
+    stroke: '#e5e7eb', strokeWidth: 1.5,
+    fontColor: '#111111', fontFamily: 'Courier New, monospace',
+    isNeuralMesh: true,
+    isOutlineOnly: true,
+    isPencil: true,
+    regionColors: aiColorThemes.vibrant,
+  },
+  pencilnetwork: {
+    id: 'pencilnetwork', name: 'Custom Draw (Network)', icon: '✍️',
+    background: '#040b16',
+    stroke: 'none', strokeWidth: 0,
+    fontColor: '#ffffff', fontFamily: 'Courier New, monospace',
+    isDotted: true,
+    isNetwork: true,
+    isPencil: true,
+    regionColors: ['#ff4500', '#ff6a00', '#ff8c00', '#ffa500', '#ff7f50', '#ffb380'],
+  },
 };
 
 // Generates a 6-step color palette blending from a base hex towards a bright glow

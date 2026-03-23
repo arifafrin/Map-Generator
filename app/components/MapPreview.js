@@ -49,6 +49,19 @@ export default memo(function MapPreview({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+  // PENCIL DRAWING STATE
+  const [drawnPaths, setDrawnPaths] = useState([]);
+  const [currentPath, setCurrentPath] = useState(null);
+  const [isDrawingShape, setIsDrawingShape] = useState(false);
+
+  // Clear pencil drawings when leaving pencil style
+  useEffect(() => {
+    if (!mapStyles[style]?.isPencil) {
+      setDrawnPaths([]);
+      setCurrentPath(null);
+    }
+  }, [style]);
+
   // GEO WORKER STATE
   const [processedData, setProcessedData] = useState({ groups: [], debugBounds: null });
   const [isProcessingGeo, setIsProcessingGeo] = useState(false);
@@ -98,12 +111,42 @@ export default memo(function MapPreview({
   }, [dimensions]);
 
   const handlePointerDown = (e) => {
+    if (mapStyles[style]?.isPencil) {
+       setIsDrawingShape(true);
+       const svgRect = svgRef.current.getBoundingClientRect();
+       const logicalX = ((e.clientX - svgRect.left) / svgRect.width) * dimensions.width;
+       const logicalY = ((e.clientY - svgRect.top) / svgRect.height) * dimensions.height;
+       const canvasX = (logicalX - transform.x) / transform.k;
+       const canvasY = (logicalY - transform.y) / transform.k;
+       setCurrentPath([{ x: canvasX, y: canvasY }]);
+       e.target.setPointerCapture(e.pointerId);
+       return;
+    }
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
     e.target.setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e) => {
+    if (mapStyles[style]?.isPencil && isDrawingShape && currentPath) {
+       const svgRect = svgRef.current.getBoundingClientRect();
+       const logicalX = ((e.clientX - svgRect.left) / svgRect.width) * dimensions.width;
+       const logicalY = ((e.clientY - svgRect.top) / svgRect.height) * dimensions.height;
+       const canvasX = (logicalX - transform.x) / transform.k;
+       const canvasY = (logicalY - transform.y) / transform.k;
+       
+       setCurrentPath(prev => {
+          if (!prev || prev.length === 0) return [{x: canvasX, y: canvasY}];
+          const last = prev[prev.length - 1];
+          const dx = canvasX - last.x;
+          const dy = canvasY - last.y;
+          if (dx*dx + dy*dy > 16) { // 4px distance limit
+             return [...prev, {x: canvasX, y: canvasY}];
+          }
+          return prev;
+       });
+       return;
+    }
     if (!isDragging) return;
     const svgRect = svgRef.current.getBoundingClientRect();
     const logicalDx = ((e.clientX - dragStart.x) / svgRect.width) * dimensions.width;
@@ -114,6 +157,23 @@ export default memo(function MapPreview({
   };
 
   const handlePointerUp = (e) => {
+    if (mapStyles[style]?.isPencil && isDrawingShape) {
+       setIsDrawingShape(false);
+       if (currentPath && currentPath.length > 2) {
+          let isClosed = false;
+          const start = currentPath[0];
+          const end = currentPath[currentPath.length - 1];
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          if (dx*dx + dy*dy < 400) { // closing radius of 20px
+             isClosed = true;
+          }
+          setDrawnPaths(prev => [...prev, { points: currentPath, isClosed }]);
+       }
+       setCurrentPath(null);
+       e.target.releasePointerCapture(e.pointerId);
+       return;
+    }
     setIsDragging(false);
     e.target.releasePointerCapture(e.pointerId);
   };
@@ -236,8 +296,29 @@ export default memo(function MapPreview({
 
   const { groups, debugBounds } = processedData;
 
-  // Flatten all paths for tooltip lookup
-  const allPaths = useMemo(() => groups.flatMap(g => g.paths), [groups]);
+  // Flatten all paths for tooltip lookup and synthesis for Pencil styles
+  const allPaths = useMemo(() => {
+     let _paths = [];
+     if (groups) _paths = _paths.concat(groups.flatMap(g => g.paths));
+     
+     if (styleConfig.isPencil) {
+         drawnPaths.forEach((pathObj, i) => {
+             const d = 'M ' + pathObj.points.map(pt => `${parseFloat(pt.x.toFixed(2))},${parseFloat(pt.y.toFixed(2))}`).join(' L ') + (pathObj.isClosed ? ' Z' : '');
+             _paths.push({
+                 id: `drawn-${i}`, index: 1000 + i, name: 'Drawn Layer',
+                 d, centroid: null, fillColor: 'transparent'
+             });
+         });
+         if (currentPath && currentPath.length > 0) {
+             const d = 'M ' + currentPath.map(pt => `${parseFloat(pt.x.toFixed(2))},${parseFloat(pt.y.toFixed(2))}`).join(' L ');
+             _paths.push({
+                 id: `drawn-curr`, index: 9999, name: 'Drawing...',
+                 d, centroid: null, fillColor: 'transparent'
+             });
+         }
+     }
+     return _paths;
+  }, [groups, drawnPaths, currentPath, styleConfig.isPencil]);
 
   // AUTO-STROKE: Adapt border width based on region density
   const autoStrokeWidth = useMemo(() => {
@@ -389,7 +470,7 @@ export default memo(function MapPreview({
 
   return (
     <div className="relative w-full h-full flex items-center justify-center bg-transparent">
-      {!geoData || groups.length === 0 ? (
+      {(!geoData && !styleConfig.isPencil) ? (
         <div className="flex flex-col items-center gap-4 text-gray-500">
           <div className="w-24 h-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
             <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -446,6 +527,11 @@ export default memo(function MapPreview({
                   })}
                 </g>
               );
+            })}
+            
+            {/* Direct pencil geometry render bypass */}
+            {styleConfig.isPencil && allPaths.filter(p => `${p.id}`.startsWith('drawn')).map((path, idx) => {
+               return renderPath(path, 1000 + idx);
             })}
           </g>
 
