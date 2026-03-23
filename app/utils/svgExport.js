@@ -27,6 +27,70 @@ const sanitizeId = (str) => {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 };
 
+/**
+ * Builds an Adobe-standard XMP metadata block to embed inside an SVG's defs.
+ * Illustrator reads this via File > File Info and carries it into EPS 10 on save.
+ */
+function buildXMPMetadataBlock(metadata) {
+  if (!metadata) return '';
+  const { title = '', keywords = '', description = '' } = metadata;
+  const now = new Date().toISOString();
+
+  // Sanitize for XML embedding
+  const esc = (str) => str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+  // Build keyword <rdf:Bag> list for Adobe Stock / IPTC compatibility
+  const kwArray = keywords.split(',').map(k => k.trim()).filter(Boolean);
+  const kwBag = kwArray.map(k => `            <rdf:li>${esc(k)}</rdf:li>`).join('\n');
+
+  return `  <metadata id="xmp-metadata">
+    <x:xmpmeta xmlns:x="adobe:ns:meta/">
+      <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+        <rdf:Description rdf:about=""
+          xmlns:dc="http://purl.org/dc/elements/1.1/"
+          xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+          xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/"
+          xmlns:Iptc4xmpCore="http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/">
+          <dc:title>
+            <rdf:Alt>
+              <rdf:li xml:lang="x-default">${esc(title)}</rdf:li>
+            </rdf:Alt>
+          </dc:title>
+          <dc:description>
+            <rdf:Alt>
+              <rdf:li xml:lang="x-default">${esc(description)}</rdf:li>
+            </rdf:Alt>
+          </dc:description>
+          <dc:subject>
+            <rdf:Bag>
+${kwBag}
+            </rdf:Bag>
+          </dc:subject>
+          <dc:rights>
+            <rdf:Alt>
+              <rdf:li xml:lang="x-default">Royalty Free</rdf:li>
+            </rdf:Alt>
+          </dc:rights>
+          <dc:creator>
+            <rdf:Seq>
+              <rdf:li>Vector Map Generator Premium Edition</rdf:li>
+            </rdf:Seq>
+          </dc:creator>
+          <xmp:CreateDate>${now}</xmp:CreateDate>
+          <xmp:ModifyDate>${now}</xmp:ModifyDate>
+          <xmp:CreatorTool>Vector Map Generator Premium Edition</xmp:CreatorTool>
+          <xmpRights:Marked>True</xmpRights:Marked>
+          <Iptc4xmpCore:CiEmailWork></Iptc4xmpCore:CiEmailWork>
+        </rdf:Description>
+      </rdf:RDF>
+    </x:xmpmeta>
+  </metadata>`;
+}
+
 export async function buildStockReadySVG(svgElement, countryName, options = { stripLabels: false }) {
   if (!svgElement) return null;
 
@@ -365,7 +429,7 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   // CRITICAL FIX FOR ADOBE ILLUSTRATOR [STEX] ERROR:
   // XMLSerializer injects `xmlns="http://www.w3.org/2000/svg"` into every child node if it feels like it.
   // Illustrator instantly crashes when child nodes have `xmlns` declarations.
-  // We globally strip ALL namespace declarations (xmlns:...)
+  // We globally strip ALL namespace declarations EXCEPT on the root <svg> tag.
   svgString = svgString.replace(/\s+xmlns(:[a-zA-Z0-9-]+)?="[^"]*"/ig, '');
 
   // Strip other problematic native DOM attributes BUT NEVER strip x and y globally!
@@ -374,6 +438,18 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   // Inject pristine strict Adobe Illustrator standard header to the root <svg> tag
   svgString = svgString.replace(/<svg\s*/i, '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" xml:space="preserve" x="0px" y="0px" ');
   
+  // === INJECT XMP METADATA ===
+  // Build the Adobe-standard XMP block from the metadata option and embed it just before </svg>.
+  // Illustrator reads this automatically in File > File Info, and carries it to EPS 10 on save.
+  if (options.metadata) {
+    const xmpBlock = buildXMPMetadataBlock(options.metadata);
+    // Re-inject proper namespace declarations needed for XMP inside the block
+    const xmpWithNs = xmpBlock
+      .replace('xmlns:x="adobe:ns:meta/"', 'xmlns:x="adobe:ns:meta/"')
+      .replace('xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"', 'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"');
+    svgString = svgString.replace('</svg>', `\n${xmpWithNs}\n</svg>`);
+  }
+
   svgString = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' +
     '<!-- Generator: Vector Map Generator Premium Edition -->\n' +
     svgString;
@@ -437,22 +513,23 @@ return new Promise((resolve, reject) => {
 }
 
 // Generates a complete ZIP package including SVG, PNG, and metadata.txt
-export async function downloadZIPPackage(svgElement, metadata, baseFilename) {
+export async function downloadZIPPackage(svgElement, metadata, baseFilename, svgOptions = {}) {
   if (!svgElement) return;
 
   const zip = new JSZip();
+  const countryName = baseFilename.split('-')[0];
+  // Always embed XMP metadata into the exported SVG files
+  const opts = { ...svgOptions, metadata };
 
   // 1. Generate clean SVG strings
   if (metadata.hasLabels === false || metadata.hasLabels === undefined) {
-      // If UI explicitly has labels turned off, just export normal
-      const svgString = await buildStockReadySVG(svgElement, baseFilename.split('-')[0]);
+      const svgString = await buildStockReadySVG(svgElement, countryName, { ...opts, stripLabels: false });
       zip.file(`${baseFilename}.svg`, svgString);
   } else {
-      // If UI has labels turned ON, export dual versions
-      const svgWithLabels = await buildStockReadySVG(svgElement, baseFilename.split('-')[0], { stripLabels: false });
+      const svgWithLabels = await buildStockReadySVG(svgElement, countryName, { ...opts, stripLabels: false });
       zip.file(`${baseFilename}-with-labels.svg`, svgWithLabels);
       
-      const svgWithoutLabels = await buildStockReadySVG(svgElement, baseFilename.split('-')[0], { stripLabels: true });
+      const svgWithoutLabels = await buildStockReadySVG(svgElement, countryName, { ...opts, stripLabels: true });
       zip.file(`${baseFilename}-no-labels.svg`, svgWithoutLabels);
   }
 

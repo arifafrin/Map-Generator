@@ -77,9 +77,10 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
     if (!validateMapStatus()) return;
     setIsExporting(true);
     
-    // Process SVG identically for stock readiness
+    // Generate metadata and pass into SVG so XMP is embedded in File > File Info
+    const meta = currentMetadata || generateMetadataSet(countryName, selectedStyle, hasLabels);
     const svgString = await buildStockReadySVG(svgRef, countryName, { 
-      stripLabels: false, bgMode, customBgColor, style: selectedStyle 
+      stripLabels: false, bgMode, customBgColor, style: selectedStyle, metadata: meta
     });
     downloadSVGFile(svgString, `${getSaneFileName()}.svg`);
     
