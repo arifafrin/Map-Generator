@@ -533,19 +533,20 @@ export default memo(function MapPreview({
               );
             })}
             
-            {/* Direct pencil geometry render bypass */}
-            {styleConfig.isPencil && allPaths.filter(p => `${p.id}`.startsWith('drawn')).map((path, idx) => {
-               // Provide dynamic raw visual feedback for user pencil drawing
-               const isCurrentlyDrawing = path.id === 'drawn-curr';
-               const forcedStroke = isCurrentlyDrawing ? '#ffffff' : 'rgba(255,255,255,0.05)';
-               const forcedStrokeWidth = isCurrentlyDrawing ? 2 : 0;
+            {/* Completed Pencil paths render through the normal standard pipeline to receive styles */}
+            {styleConfig.isPencil && allPaths.filter(p => p.id && p.id.startsWith('drawn-') && p.id !== 'drawn-curr').map((path, idx) => {
+               return renderPath(path, 1000 + idx);
+            })}
+
+            {/* Direct active pencil drawing visual feedback bypass */}
+            {styleConfig.isPencil && allPaths.filter(p => p.id === 'drawn-curr').map((path, idx) => {
                return (
                  <path
-                   key={`pencil-raw-${idx}`}
+                   key={`pencil-raw-curr`}
                    d={path.d}
                    fill="transparent"
-                   stroke={forcedStroke}
-                   strokeWidth={forcedStrokeWidth}
+                   stroke="#ffffff"
+                   strokeWidth={2}
                    strokeLinecap="round"
                    strokeLinejoin="round"
                    pointerEvents="none"
