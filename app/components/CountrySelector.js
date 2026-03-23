@@ -28,7 +28,11 @@ export default function CountrySelector({ countries, selectedCountry, onSelect }
     : null;
 
   const continentCodes = new Set(CONTINENTS.map(c => c.code));
-  const filteredCountries = countries.filter(c =>
+  
+  // Sort alphabetically so new countries aren't stuck at the bottom
+  const sortedCountries = [...countries].sort((a, b) => a.name.localeCompare(b.name));
+  
+  const filteredCountries = sortedCountries.filter(c =>
     (!continentCodes.has(c.code) || c.code === 'AUS') && c.name.toLowerCase().includes(search.toLowerCase())
   );
 

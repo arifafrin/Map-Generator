@@ -50,6 +50,34 @@ export default function Home() {
   // Tabs State
   const [activeTab, setActiveTab] = useState('style'); // style, colors, details
 
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load saved preferences from localStorage
+  useEffect(() => {
+    const savedCountry = localStorage.getItem('vmg_selectedCountry');
+    const savedStyle = localStorage.getItem('vmg_selectedStyle');
+    
+    // Set to saved values or defaults
+    setSelectedCountry(savedCountry || 'BGD');
+    setSelectedStyle(savedStyle || 'colorful');
+    
+    setIsLoaded(true);
+  }, []);
+
+  // Save country selection when it changes
+  useEffect(() => {
+    if (isLoaded && selectedCountry) {
+      localStorage.setItem('vmg_selectedCountry', selectedCountry);
+    }
+  }, [selectedCountry, isLoaded]);
+
+  // Save map style when it changes
+  useEffect(() => {
+    if (isLoaded && selectedStyle) {
+      localStorage.setItem('vmg_selectedStyle', selectedStyle);
+    }
+  }, [selectedStyle, isLoaded]);
+
   const countryName = countries.find(c => c.code === selectedCountry)?.name;
   
   // Intercept specific sub-national regions that lack standard top-level ISO-3166-1 alpha-3 sovereignty
