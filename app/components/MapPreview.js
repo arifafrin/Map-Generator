@@ -22,14 +22,17 @@ export default memo(function MapPreview({
   stockMode = false,
   includeIslands = true,
   dotSize = 3,
-  atomX = 50,
-  atomY = 50,
+  showAtom = true,
+  activeAtomId = 'atom-0', setActiveAtomId,
+  atomPositions = [{ id: 'default', x: 50, y: 50 }],
+  setAtomPositions,
   atomSize = 32,
   electronCount = 12,
   pinEnabled = false,
   pinSize = 36,
   pinColor = '#ef4444',
-  countryIso2 = null
+  countryIso2 = null,
+  clearDrawingsTrigger = 0
 }) {
   const svgRef = useRef(null);
   const [hoveredRegion, setHoveredRegion] = useState(null);
@@ -54,6 +57,16 @@ export default memo(function MapPreview({
   const [currentPath, setCurrentPath] = useState(null);
   const [isDrawingShape, setIsDrawingShape] = useState(false);
 
+  // Refs to avoid stale closures in pointer handlers
+  const isDrawingShapeRef = useRef(false);
+  const currentPathRef = useRef(null);
+
+  // DRAG ATOM STATE
+  const [draggingAtomId, setDraggingAtomId] = useState(null);
+  const [atomDragOffset, setAtomDragOffset] = useState({ x: 0, y: 0 });
+  useEffect(() => { isDrawingShapeRef.current = isDrawingShape; }, [isDrawingShape]);
+  useEffect(() => { currentPathRef.current = currentPath; }, [currentPath]);
+
   // Clear pencil drawings when leaving pencil style
   useEffect(() => {
     if (!mapStyles[style]?.isPencil) {
@@ -61,6 +74,14 @@ export default memo(function MapPreview({
       setCurrentPath(null);
     }
   }, [style]);
+
+  // Clear pencil drawings via trigger from parent
+  useEffect(() => {
+    if (clearDrawingsTrigger > 0) {
+      setDrawnPaths([]);
+      setCurrentPath(null);
+    }
+  }, [clearDrawingsTrigger]);
 
   // GEO WORKER STATE
   const [processedData, setProcessedData] = useState({ groups: [], debugBounds: null });
@@ -110,15 +131,24 @@ export default memo(function MapPreview({
     return () => svgEl.removeEventListener('wheel', handleWheel);
   }, [dimensions]);
 
+  // React pointer handlers for pan and pencil drawing
   const handlePointerDown = (e) => {
     if (mapStyles[style]?.isPencil) {
        setIsDrawingShape(true);
+       isDrawingShapeRef.current = true;
        const svgRect = svgRef.current.getBoundingClientRect();
        const logicalX = ((e.clientX - svgRect.left) / svgRect.width) * dimensions.width;
        const logicalY = ((e.clientY - svgRect.top) / svgRect.height) * dimensions.height;
        const canvasX = (logicalX - transform.x) / transform.k;
        const canvasY = (logicalY - transform.y) / transform.k;
-       setCurrentPath([{ x: canvasX, y: canvasY }]);
+       const initPath = [{ x: canvasX, y: canvasY }];
+       currentPathRef.current = initPath;
+       setCurrentPath(initPath); // Keep React state sync for edge cases, but drive UI directly
+       
+       const livePathEl = document.getElementById('live-draw-path');
+       if (livePathEl) {
+          livePathEl.setAttribute('d', `M ${canvasX},${canvasY}`);
+       }
        e.target.setPointerCapture(e.pointerId);
        return;
     }
@@ -127,24 +157,80 @@ export default memo(function MapPreview({
     e.target.setPointerCapture(e.pointerId);
   };
 
+  const handleAtomPointerDown = (e, atomId, cx, cy) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (svgRef.current) {
+        svgRef.current.setPointerCapture(e.pointerId);
+    }
+    
+    const bounds = svgRef.current.getBoundingClientRect();
+    const mouseX = (e.clientX - bounds.left) * (dimensions.width / bounds.width);
+    const mouseY = (e.clientY - bounds.top) * (dimensions.height / bounds.height);
+    
+    if (e.altKey) {
+      // Clone!
+      const newId = `atom-${Date.now()}`;
+      if (setAtomPositions) {
+        setAtomPositions(prev => {
+          const sourceAtom = prev.find(a => a.id === atomId);
+          if (!sourceAtom) return prev;
+          // Copy per-atom overrides too
+          return [...prev, { id: newId, x: sourceAtom.x, y: sourceAtom.y, size: sourceAtom.size, electrons: sourceAtom.electrons }];
+        });
+      }
+      if (setActiveAtomId) setActiveAtomId(newId);
+      setDraggingAtomId(newId);
+    } else {
+      // Move & Select!
+      if (setActiveAtomId) setActiveAtomId(atomId);
+      setDraggingAtomId(atomId);
+    }
+    
+    setAtomDragOffset({ x: mouseX - cx, y: mouseY - cy });
+  };
+
   const handlePointerMove = (e) => {
-    if (mapStyles[style]?.isPencil && isDrawingShape && currentPath) {
+    if (draggingAtomId && setAtomPositions) {
+       const bounds = svgRef.current.getBoundingClientRect();
+       const mouseX = (e.clientX - bounds.left) * (dimensions.width / bounds.width);
+       const mouseY = (e.clientY - bounds.top) * (dimensions.height / bounds.height);
+       
+       const newCx = mouseX - atomDragOffset.x;
+       const newCy = mouseY - atomDragOffset.y;
+       
+       const percentX = Math.max(0, Math.min(100, (newCx / dimensions.width) * 100));
+       const percentY = Math.max(0, Math.min(100, (newCy / dimensions.height) * 100));
+       
+       setAtomPositions(prev => prev.map(a => a.id === draggingAtomId ? { ...a, x: percentX, y: percentY } : a));
+       return;
+    }
+
+    if (mapStyles[style]?.isPencil && isDrawingShapeRef.current) {
        const svgRect = svgRef.current.getBoundingClientRect();
        const logicalX = ((e.clientX - svgRect.left) / svgRect.width) * dimensions.width;
        const logicalY = ((e.clientY - svgRect.top) / svgRect.height) * dimensions.height;
        const canvasX = (logicalX - transform.x) / transform.k;
        const canvasY = (logicalY - transform.y) / transform.k;
        
-       setCurrentPath(prev => {
-          if (!prev || prev.length === 0) return [{x: canvasX, y: canvasY}];
-          const last = prev[prev.length - 1];
+       const pts = currentPathRef.current || [];
+       if (pts.length === 0) {
+          currentPathRef.current = [{x: canvasX, y: canvasY}];
+       } else {
+          const last = pts[pts.length - 1];
           const dx = canvasX - last.x;
           const dy = canvasY - last.y;
-          if (dx*dx + dy*dy > 16) { // 4px distance limit
-             return [...prev, {x: canvasX, y: canvasY}];
+          if (dx*dx + dy*dy > 9) { // ~3px distance limit
+             pts.push({x: canvasX, y: canvasY});
+             
+             // High-performance direct DOM mutation for 60fps live drawing
+             const livePathEl = document.getElementById('live-draw-path');
+             if (livePathEl) {
+                const dString = 'M ' + pts.map(pt => `${parseFloat(pt.x.toFixed(2))},${parseFloat(pt.y.toFixed(2))}`).join(' L ');
+                livePathEl.setAttribute('d', dString);
+             }
           }
-          return prev;
-       });
+       }
        return;
     }
     if (!isDragging) return;
@@ -157,25 +243,45 @@ export default memo(function MapPreview({
   };
 
   const handlePointerUp = (e) => {
-    if (mapStyles[style]?.isPencil && isDrawingShape) {
+    if (draggingAtomId) {
+      if (svgRef.current) {
+          svgRef.current.releasePointerCapture(e.pointerId);
+      }
+      setDraggingAtomId(null);
+      return;
+    }
+
+    if (mapStyles[style]?.isPencil && isDrawingShapeRef.current) {
        setIsDrawingShape(false);
-       if (currentPath && currentPath.length > 2) {
+       isDrawingShapeRef.current = false;
+       const finalPath = currentPathRef.current ? [...currentPathRef.current] : null;
+       
+       // Clear direct DOM rendering immediately
+       const livePathEl = document.getElementById('live-draw-path');
+       if (livePathEl) livePathEl.setAttribute('d', '');
+
+       if (finalPath && finalPath.length > 2) {
           let isClosed = false;
-          const start = currentPath[0];
-          const end = currentPath[currentPath.length - 1];
+          const start = finalPath[0];
+          const end = finalPath[finalPath.length - 1];
           const dx = end.x - start.x;
           const dy = end.y - start.y;
-          if (dx*dx + dy*dy < 400) { // closing radius of 20px
+          
+          // Use screen pixels for snap radius (50px = 2500 squared)
+          const screenDistSq = (dx * transform.k) ** 2 + (dy * transform.k) ** 2;
+          
+          if (screenDistSq < 2500) {
              isClosed = true;
           }
-          setDrawnPaths(prev => [...prev, { points: currentPath, isClosed }]);
+          setDrawnPaths(prev => [...prev, { points: finalPath, isClosed }]);
        }
        setCurrentPath(null);
-       e.target.releasePointerCapture(e.pointerId);
+       currentPathRef.current = null;
+       try { e.target.releasePointerCapture(e.pointerId); } catch(_) {}
        return;
     }
     setIsDragging(false);
-    e.target.releasePointerCapture(e.pointerId);
+    try { e.target.releasePointerCapture(e.pointerId); } catch(_) {}
   };
 
   // Download pure SVG geometry for the flag natively
@@ -259,6 +365,7 @@ export default memo(function MapPreview({
   useEffect(() => {
     if (!geoData || !workerRef.current) {
       setProcessedData({ groups: [], debugBounds: null });
+      setIsProcessingGeo(false);
       return;
     }
     
@@ -313,16 +420,10 @@ export default memo(function MapPreview({
                  d, centroid: null, fillColor: customFill
              });
          });
-         if (currentPath && currentPath.length > 0) {
-             const d = 'M ' + currentPath.map(pt => `${parseFloat(pt.x.toFixed(2))},${parseFloat(pt.y.toFixed(2))}`).join(' L ');
-             _paths.push({
-                 id: `drawn-curr`, index: 9999, name: 'Drawing...',
-                 d, centroid: null, fillColor: customFill
-             });
-         }
+         // Notice: We omitted the dynamic active `currentPath` mapping here because it's rendered natively on the DOM bypassing React overhead
      }
      return _paths;
-  }, [groups, drawnPaths, currentPath, styleConfig.isPencil]);
+  }, [groups, drawnPaths, styleConfig.isPencil]);
 
   // AUTO-STROKE: Adapt border width based on region density
   const autoStrokeWidth = useMemo(() => {
@@ -373,16 +474,16 @@ export default memo(function MapPreview({
           <feDisplacementMap in="SourceGraphic" in2="noiseOut" scale="2" xChannelSelector="R" yChannelSelector="G" />
         </filter>
       )}
-      {styleConfig.isGradientFill && allPaths.map((p, i) => (
-        <linearGradient key={`grad-${i}`} id={`grad-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
+      {styleConfig.isGradientFill && allPaths.map((p) => (
+        <linearGradient key={`grad-${p.id}`} id={`grad-${p.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={p.fillColor} />
           <stop offset="100%" stopColor="#ffffff" stopOpacity="0.2" />
         </linearGradient>
       ))}
-      {styleConfig.isDotted && allPaths.map((p, i) => {
+      {styleConfig.isDotted && allPaths.map((p) => {
         const spacing = dotSize * 3;
         return (
-          <pattern key={`dot-${i}`} id={`dot-${i}`} x="0" y="0" width={spacing} height={spacing} patternUnits="userSpaceOnUse">
+          <pattern key={`dot-${p.id}`} id={`dot-${p.id}`} x="0" y="0" width={spacing} height={spacing} patternUnits="userSpaceOnUse">
             {/* Removed the opaque white rect to prevent raster artifact effect and allow underlying background to show */}
             <circle cx={spacing/2} cy={spacing/2} r={dotSize * 0.45} fill={p.fillColor} />
           </pattern>
@@ -403,8 +504,8 @@ export default memo(function MapPreview({
     const isHovered = hoveredRegion === path.index;
     
     let displayFill = path.fillColor;
-    if (styleConfig.isGradientFill) displayFill = `url(#grad-${globalIdx})`;
-    if (styleConfig.isDotted) displayFill = `url(#dot-${globalIdx})`;
+    if (styleConfig.isGradientFill) displayFill = `url(#grad-${path.id})`;
+    if (styleConfig.isDotted) displayFill = `url(#dot-${path.id})`;
     if (isSelected && !styleConfig.isOutlineOnly) displayFill = '#ffd700';
     
     const displayStroke = isHovered ? '#ffffff' : styleConfig.stroke;
@@ -503,8 +604,11 @@ export default memo(function MapPreview({
           height={dimensions.height}
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           xmlns="http://www.w3.org/2000/svg"
-          className={`max-w-full max-h-full transition-all duration-300 origin-center ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-          style={{ background: backgroundColor, touchAction: 'none' }}
+          className={`max-w-full max-h-full transition-all duration-300 origin-center ${mapStyles[style]?.isPencil ? 'cursor-crosshair' : (isDragging ? 'cursor-grabbing' : 'cursor-grab')}`}
+          style={{ 
+            background: backgroundColor, 
+            touchAction: 'none'
+          }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -513,6 +617,8 @@ export default memo(function MapPreview({
           {defs}
           
           <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
+          {/* Transparent hit-test rect for pointer events on blank areas */}
+          <rect x={-transform.x / transform.k} y={-transform.y / transform.k} width={dimensions.width / transform.k} height={dimensions.height / transform.k} fill="transparent" />
           {/* Blueprint grid background — renders engineering paper texture */}
           {styleConfig.isBlueprint && (
             <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#blueprintGrid)" />
@@ -538,41 +644,42 @@ export default memo(function MapPreview({
                return renderPath(path, 1000 + idx);
             })}
 
-            {/* Direct active pencil drawing visual feedback bypass */}
-            {styleConfig.isPencil && allPaths.filter(p => p.id === 'drawn-curr').map((path, idx) => {
-               return (
-                 <path
-                   key={`pencil-raw-curr`}
-                   d={path.d}
-                   fill="transparent"
-                   stroke="#ffffff"
-                   strokeWidth={2}
-                   strokeLinecap="round"
-                   strokeLinejoin="round"
-                   pointerEvents="none"
-                 />
-               );
-            })}
+            {/* Direct DOM updated live drawing path */}
+            {styleConfig.isPencil && (
+               <path
+                 id="live-draw-path"
+                 d=""
+                 fill="transparent"
+                 stroke={(colors[0] && colors[0] !== 'transparent') ? colors[0] : (styleConfig.stroke || '#ef4444')}
+                 strokeWidth={3}
+                 strokeLinecap="round"
+                 strokeLinejoin="round"
+                 pointerEvents="none"
+               />
+            )}
           </g>
 
 
-          {/* Abstract Global Network Overlay — Single Large Atom */}
-          {(styleConfig.isNetwork && (!styleConfig.isPencil || (styleConfig.isPencil && drawnPaths.length > 0))) && (
+          {/* Abstract Global Network Overlay — Massive Atoms Array */}
+          {(styleConfig.isNetwork && showAtom && (!styleConfig.isPencil || (styleConfig.isPencil && drawnPaths.length > 0))) && (
             <g id="network-overlay">
               
-              {/* ONE Large Atom positioned by user controls */}
-              {(() => {
-                const cx = dimensions.width * (atomX / 100);
-                const cy = dimensions.height * (atomY / 100);
+              {/* Infinite Atoms array positioned by user controls (Drag) */}
+              {atomPositions.map((atom) => {
+                const cx = dimensions.width * (atom.x / 100);
+                const cy = dimensions.height * (atom.y / 100);
                 const color = colors[0] || '#ff4500';
                 const color2 = colors[1] || colors[0] || '#ff6a00';
                 const color3 = colors[2] || colors[0] || '#ff8c00';
                 const orbitColors = [color, color2, color3];
-                const atomR = Math.min(dimensions.width, dimensions.height) * (atomSize / 100);
+                const atomR = Math.min(dimensions.width, dimensions.height) * ((atom.size ?? atomSize) / 100);
+                const atomElectrons = atom.electrons ?? electronCount;
+                const isActive = atom.id === activeAtomId;
                 const orbits = 3;
-                const seed = countryName.length || 5;
+                const seed = atom.id.length * countryName.length || 5;
+                
                 return (
-                  <g filter="url(#atomGlow)">
+                  <g key={atom.id} filter="url(#atomGlow)">
                     {/* 3 Orbital ellipses at different angles */}
                     {Array.from({ length: orbits }).map((_, o) => (
                       <ellipse
@@ -588,14 +695,34 @@ export default memo(function MapPreview({
                     {/* Nucleus — solid circle in center */}
                     <circle cx={cx} cy={cy} r={atomR * 0.07} fill={color} opacity="0.95" />
                     <circle cx={cx} cy={cy} r={atomR * 0.12} fill="none" stroke={color} strokeWidth="1" opacity="0.4" />
-                    {/* Electron dots — distributed along the orbits to match joints */}
-                    {Array.from({ length: electronCount }).map((_, i) => {
-                      // Distribute electrons evenly among the orbits
+                    
+                    {/* Selection ring — dashed halo around currently active atom */}
+                    {isActive && (
+                      <circle
+                        cx={cx} cy={cy}
+                        r={atomR + 8}
+                        fill="none"
+                        stroke="rgba(255,255,255,0.6)"
+                        strokeWidth="1.5"
+                        strokeDasharray="6 4"
+                        opacity="0.8"
+                        style={{ pointerEvents: 'none' }}
+                      />
+                    )}
+                    
+                    {/* Invisible Hitbox for dragging the entire atom construct! */}
+                    <circle 
+                      cx={cx} cy={cy} r={atomR * 0.25} 
+                      fill="transparent" 
+                      className="cursor-move hover:cursor-grab active:cursor-grabbing"
+                      onPointerDown={(e) => handleAtomPointerDown(e, atom.id, cx, cy)}
+                      style={{ pointerEvents: 'all' }}
+                    />
+
+                    {/* Electron dots — distributed along orbits to match joints */}
+                    {Array.from({ length: atomElectrons }).map((_, i) => {
                       const orbitIndex = i % orbits;
-                      // Determine the parametric angle for this electron on its specific orbit
-                      // If we have 12 electrons and 3 orbits, that's 4 per orbit -> 0, 90, 180, 270 deg.
-                      // The 90 and 270 degree positions naturally align with the orbit intersections near the center.
-                      const electronsPerOrbit = electronCount / orbits;
+                      const electronsPerOrbit = atomElectrons / orbits;
                       const baseAngle = (Math.floor(i / orbits) * (360 / electronsPerOrbit));
                       const angle = ((baseAngle + (orbitIndex * 30) + (seed * 10)) % 360) * (Math.PI / 180);
                       
@@ -612,12 +739,13 @@ export default memo(function MapPreview({
                           r={atomR * 0.025} 
                           fill={orbitColors[orbitIndex % orbitColors.length]} 
                           opacity="0.95"
+                          style={{ pointerEvents: 'none' }}
                         />
                       );
                     })}
                   </g>
                 );
-              })()}
+              })}
             </g>
           )}
 

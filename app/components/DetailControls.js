@@ -9,15 +9,39 @@ export default function DetailControls({
   stockMode, setStockMode,
   includeIslands, setIncludeIslands,
   dotSize, setDotSize,
+  showAtom = true, setShowAtom,
+  activeAtomId, setActiveAtomId,
   atomSize, setAtomSize,
-  atomX, setAtomX,
-  atomY, setAtomY,
+  atomPositions, setAtomPositions,
   electronCount, setElectronCount,
   pinEnabled, setPinEnabled,
   pinSize, setPinSize,
   pinColor, setPinColor,
   selectedStyle
 }) {
+  const activeAtom = atomPositions?.find(a => a.id === activeAtomId) || atomPositions?.[0] || { x: 50, y: 50 };
+  const atomX = activeAtom.x;
+  const atomY = activeAtom.y;
+  const currentAtomSize = activeAtom.size ?? atomSize;
+  const currentElectronCount = activeAtom.electrons ?? electronCount;
+
+  const handleUpdateActiveAtom = (updates) => {
+     if (setAtomPositions) {
+         setAtomPositions(prev => prev.map(a => 
+             a.id === activeAtom.id ? { ...a, ...updates } : a
+         ));
+     }
+  };
+
+  const handleRecenterAtoms = () => {
+     if (setAtomPositions) {
+         setAtomPositions([{ id: 'atom-0', x: 50, y: 50 }]);
+     }
+     if (setActiveAtomId) setActiveAtomId('atom-0');
+     if (setAtomSize) setAtomSize(32);
+     if (setElectronCount) setElectronCount(12);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-1">
@@ -291,48 +315,44 @@ export default function DetailControls({
          </div>
       )}
 
-      {/* Legacy Atom Controls */}
-      {selectedStyle === 'network' && (
+      {/* Atom Controls */}
+      {(selectedStyle === 'network' || selectedStyle === 'pencilnetwork') && (
         <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
-          <p className="text-[11px] uppercase text-indigo-400 font-bold tracking-wider mb-2">⚛️ Atom Controls</p>
+          <div className="flex items-center justify-between mb-1 border-b border-indigo-500/20 pb-2">
+            <div className="flex items-center gap-2">
+               <span className="text-[10px] text-indigo-300">⚛️</span>
+               <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Atom Generator</p>
+            </div>
+            <button 
+              onClick={() => setShowAtom(!showAtom)}
+              className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showAtom ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10 hover:bg-white/20'}`}
+            >
+              <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform duration-300 ${showAtom ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          {/* Active atom status indicator */}
+          {atomPositions && atomPositions.length > 1 && (
+            <div className="flex items-center justify-between py-1.5 px-2 mb-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+              <p className="text-[10px] text-indigo-300 font-semibold">Editing Atom</p>
+              <span className="text-[10px] font-mono text-white bg-indigo-500/30 px-2 py-0.5 rounded">
+                {(atomPositions?.findIndex(a => a.id === activeAtomId) ?? 0) + 1} / {atomPositions?.length}
+              </span>
+            </div>
+          )}
           
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-[10px] text-gray-500 font-mono">Atom Scale</p>
-              <span className="text-[10px] font-mono text-gray-400">{atomSize}%</span>
+          <div className={`space-y-4 transition-all duration-300 ${!showAtom ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Electron Particles</p>
+                <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded">{currentElectronCount}</span>
+              </div>
+              <input type="range" min="0" max="48" step="1" value={currentElectronCount} onChange={(e) => handleUpdateActiveAtom({ electrons: parseInt(e.target.value) })} className="w-full h-1.5 bg-indigo-950 rounded-lg appearance-none cursor-pointer border-none accent-indigo-400" />
             </div>
-            <input type="range" min="10" max="100" step="1" value={atomSize} onChange={(e) => setAtomSize(parseInt(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500" />
           </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-[10px] text-gray-500 font-mono">Horizontal Position</p>
-              <span className="text-[10px] font-mono text-gray-400">{atomX}%</span>
-            </div>
-            <input type="range" min="10" max="90" step="1" value={atomX} onChange={(e) => setAtomX(parseInt(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500" />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-[10px] text-gray-500 font-mono">Vertical Position</p>
-              <span className="text-[10px] font-mono text-gray-400">{atomY}%</span>
-            </div>
-            <input type="range" min="10" max="90" step="1" value={atomY} onChange={(e) => setAtomY(parseInt(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500" />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-[10px] text-gray-500 font-mono">Electron Dots</p>
-              <span className="text-[10px] font-mono text-gray-400">{electronCount}</span>
-            </div>
-            <input type="range" min="0" max="36" step="1" value={electronCount} onChange={(e) => setElectronCount(parseInt(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer border-none accent-indigo-500" />
-          </div>
-
-          <button onClick={() => { setAtomX(50); setAtomY(50); }} className="w-full py-2 px-3 mt-4 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-gray-400 hover:text-white hover:bg-white/10 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.2)]">
-            Recenter Coordinates
-          </button>
         </div>
       )}
+
 
     </div>
   );

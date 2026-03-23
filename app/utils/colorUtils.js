@@ -206,7 +206,7 @@ export const mapStyles = {
     regionColors: aiColorThemes.vibrant, // The mesh dots and lines exclusively use this palette!
   },
   pencilbasic: {
-    id: 'pencilbasic', name: 'Raw Outline', icon: '📝',
+    id: 'pencilbasic', name: 'Pencil Outline', icon: '📝',
     background: '#0a0a0f',
     stroke: '#ffffff', strokeWidth: 2,
     fontColor: '#ffffff', fontFamily: 'Courier New, monospace',
@@ -214,7 +214,7 @@ export const mapStyles = {
     regionColors: ['transparent'],
   },
   pencilmesh: {
-    id: 'pencilmesh', name: 'Custom Draw (Neural)', icon: '✏️',
+    id: 'pencilmesh', name: 'Pencil Mesh', icon: '✏️',
     background: '#ffffff',
     stroke: '#e5e7eb', strokeWidth: 1.5,
     fontColor: '#111111', fontFamily: 'Courier New, monospace',
@@ -224,7 +224,7 @@ export const mapStyles = {
     regionColors: aiColorThemes.vibrant,
   },
   pencilnetwork: {
-    id: 'pencilnetwork', name: 'Custom Draw (Network)', icon: '✍️',
+    id: 'pencilnetwork', name: 'Pencil Network', icon: '✍️',
     background: '#040b16',
     stroke: 'none', strokeWidth: 0,
     fontColor: '#ffffff', fontFamily: 'Courier New, monospace',

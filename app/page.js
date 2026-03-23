@@ -16,6 +16,7 @@ export default function Home() {
   const [selectedStyle, setSelectedStyle] = useState('');
   const [colors, setColors] = useState(mapStyles.colorful.regionColors);
   const [colorMode, setColorMode] = useState('auto'); // auto, theme-*, random, custom
+  const [clearDrawingsTrigger, setClearDrawingsTrigger] = useState(0);
   
   // Detail Controls State
   const [bgMode, setBgMode] = useState('style-default'); // style-default, transparent, custom
@@ -35,8 +36,9 @@ export default function Home() {
   const [pinColor, setPinColor] = useState('#ef4444');
 
   // Atom Settings State (for Network style)
-  const [atomX, setAtomX] = useState(50); // percentage 0-100
-  const [atomY, setAtomY] = useState(50); // percentage 0-100
+  const [showAtom, setShowAtom] = useState(true);
+  const [atomPositions, setAtomPositions] = useState([{ id: 'atom-0', x: 50, y: 50 }]); 
+  const [activeAtomId, setActiveAtomId] = useState('atom-0');
   const [electronCount, setElectronCount] = useState(12);
   const [atomSize, setAtomSize] = useState(32); // percentage 10-100
 
@@ -58,7 +60,8 @@ export default function Home() {
     const savedStyle = localStorage.getItem('vmg_selectedStyle');
     
     // Set to saved values or defaults
-    setSelectedCountry(savedCountry || 'BGD');
+    // Use strict null check so empty string (blank canvas) doesn't fallback to 'BGD'
+    setSelectedCountry(savedCountry !== null ? savedCountry : 'BGD');
     setSelectedStyle(savedStyle || 'colorful');
     
     setIsLoaded(true);
@@ -66,7 +69,7 @@ export default function Home() {
 
   // Save country selection when it changes
   useEffect(() => {
-    if (isLoaded && selectedCountry) {
+    if (isLoaded && selectedCountry !== null) {
       localStorage.setItem('vmg_selectedCountry', selectedCountry);
     }
   }, [selectedCountry, isLoaded]);
@@ -241,14 +244,21 @@ export default function Home() {
                   </button>
 
                   {/* Draw Style Dropdown - Uses existing StyleSelector */}
-                  <div className={`transition-all duration-300 ${!mapStyles[selectedStyle]?.isPencil ? 'opacity-40 pointer-events-none grayscale max-h-0 overflow-hidden' : 'max-h-[200px]'}`}>
+                  <div className={`transition-all duration-300 ${!mapStyles[selectedStyle]?.isPencil ? 'opacity-40 pointer-events-none grayscale max-h-0 overflow-hidden' : 'max-h-[300px]'}`}>
                      <StyleSelector
                        selectedStyle={selectedStyle}
                        onSelect={setSelectedStyle}
                        label="Drawing Style"
                        stylesList={[mapStyles.pencilbasic, mapStyles.pencilmesh, mapStyles.pencilnetwork]}
                      />
-                     <p className="text-[10px] text-blue-300 mt-4 text-center bg-blue-900/10 py-2 rounded-md border border-blue-500/20 animate-pulse font-medium">✨ Canvas is blank. Draw your shape on the right!</p>
+                     <button
+                        onClick={() => setClearDrawingsTrigger(prev => prev + 1)}
+                        className="w-full mt-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wide hover:bg-red-500/20 transition-all shadow-[0_2px_10px_rgba(239,68,68,0.1)] active:scale-95 flex items-center justify-center gap-2"
+                     >
+                        <span className="text-sm">🗑️</span>
+                        Clear Drawing
+                     </button>
+                     <p className="text-[10px] text-blue-300 mt-3 text-center bg-blue-900/10 py-2 rounded-md border border-blue-500/20 animate-pulse font-medium">✨ Draw your shape on the right!</p>
                   </div>
                   
                 </div>
@@ -315,8 +325,9 @@ export default function Home() {
                stockMode={stockMode} setStockMode={setStockMode}
                includeIslands={includeIslands} setIncludeIslands={setIncludeIslands}
                dotSize={dotSize} setDotSize={setDotSize}
-               atomX={atomX} setAtomX={setAtomX}
-               atomY={atomY} setAtomY={setAtomY}
+               showAtom={showAtom} setShowAtom={setShowAtom}
+               activeAtomId={activeAtomId} setActiveAtomId={setActiveAtomId}
+               atomPositions={atomPositions} setAtomPositions={setAtomPositions}
                electronCount={electronCount} setElectronCount={setElectronCount}
                atomSize={atomSize} setAtomSize={setAtomSize}
                pinEnabled={pinEnabled} setPinEnabled={setPinEnabled}
@@ -393,14 +404,16 @@ export default function Home() {
                   stockMode={stockMode}
                   includeIslands={includeIslands}
                   dotSize={dotSize}
-                  atomX={atomX}
-                  atomY={atomY}
+                  showAtom={showAtom}
+                  activeAtomId={activeAtomId} setActiveAtomId={setActiveAtomId}
+                  atomPositions={atomPositions} setAtomPositions={setAtomPositions}
                   electronCount={electronCount}
                   atomSize={atomSize}
                   pinEnabled={pinEnabled}
                   pinSize={pinSize}
                   pinColor={pinColor}
                   countryIso2={countryIso2}
+                  clearDrawingsTrigger={clearDrawingsTrigger}
                 />
              </div>
           ) : null}
