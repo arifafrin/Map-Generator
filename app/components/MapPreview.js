@@ -409,7 +409,11 @@ export default memo(function MapPreview({
         </div>
       ) : (
         <svg
-          ref={svgRef}
+          id="map-canvas"
+          ref={(el) => {
+            svgRef.current = el;
+            if (onSvgRef) onSvgRef(el);
+          }}
           width={dimensions.width}
           height={dimensions.height}
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
