@@ -47,48 +47,48 @@ function buildXMPMetadataBlock(metadata) {
   const kwArray = keywords.split(',').map(k => k.trim()).filter(Boolean);
   const kwBag = kwArray.map(k => `            <rdf:li>${esc(k)}</rdf:li>`).join('\n');
 
-  return `  <metadata id="xmp-metadata">
-    <x:xmpmeta xmlns:x="adobe:ns:meta/">
-      <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-        <rdf:Description rdf:about=""
-          xmlns:dc="http://purl.org/dc/elements/1.1/"
-          xmlns:xmp="http://ns.adobe.com/xap/1.0/"
-          xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/"
-          xmlns:Iptc4xmpCore="http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/">
-          <dc:title>
-            <rdf:Alt>
-              <rdf:li xml:lang="x-default">${esc(title)}</rdf:li>
-            </rdf:Alt>
-          </dc:title>
-          <dc:description>
-            <rdf:Alt>
-              <rdf:li xml:lang="x-default">${esc(description)}</rdf:li>
-            </rdf:Alt>
-          </dc:description>
-          <dc:subject>
-            <rdf:Bag>
+  return `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+      xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/"
+      xmlns:Iptc4xmpCore="http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/">
+      <dc:title>
+        <rdf:Alt>
+          <rdf:li xml:lang="x-default">${esc(title)}</rdf:li>
+        </rdf:Alt>
+      </dc:title>
+      <dc:description>
+        <rdf:Alt>
+          <rdf:li xml:lang="x-default">${esc(description)}</rdf:li>
+        </rdf:Alt>
+      </dc:description>
+      <dc:subject>
+        <rdf:Bag>
 ${kwBag}
-            </rdf:Bag>
-          </dc:subject>
-          <dc:rights>
-            <rdf:Alt>
-              <rdf:li xml:lang="x-default">Royalty Free</rdf:li>
-            </rdf:Alt>
-          </dc:rights>
-          <dc:creator>
-            <rdf:Seq>
-              <rdf:li>Vector Map Generator Premium Edition</rdf:li>
-            </rdf:Seq>
-          </dc:creator>
-          <xmp:CreateDate>${now}</xmp:CreateDate>
-          <xmp:ModifyDate>${now}</xmp:ModifyDate>
-          <xmp:CreatorTool>Vector Map Generator Premium Edition</xmp:CreatorTool>
-          <xmpRights:Marked>True</xmpRights:Marked>
-          <Iptc4xmpCore:CiEmailWork></Iptc4xmpCore:CiEmailWork>
-        </rdf:Description>
-      </rdf:RDF>
-    </x:xmpmeta>
-  </metadata>`;
+        </rdf:Bag>
+      </dc:subject>
+      <dc:rights>
+        <rdf:Alt>
+          <rdf:li xml:lang="x-default">Royalty Free</rdf:li>
+        </rdf:Alt>
+      </dc:rights>
+      <dc:creator>
+        <rdf:Seq>
+          <rdf:li>Vector Map Generator Premium Edition</rdf:li>
+        </rdf:Seq>
+      </dc:creator>
+      <xmp:CreateDate>${now}</xmp:CreateDate>
+      <xmp:ModifyDate>${now}</xmp:ModifyDate>
+      <xmp:CreatorTool>Vector Map Generator Premium Edition</xmp:CreatorTool>
+      <xmpRights:Marked>True</xmpRights:Marked>
+      <Iptc4xmpCore:CiEmailWork></Iptc4xmpCore:CiEmailWork>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
 }
 
 export async function buildStockReadySVG(svgElement, countryName, options = { stripLabels: false }) {
@@ -439,15 +439,16 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
   svgString = svgString.replace(/<svg\s*/i, '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" xml:space="preserve" x="0px" y="0px" ');
   
   // === INJECT XMP METADATA ===
-  // Build the Adobe-standard XMP block from the metadata option and embed it just before </svg>.
-  // Illustrator reads this automatically in File > File Info, and carries it to EPS 10 on save.
+  // Build the Adobe-standard XMP block from the metadata option.
+  // We must inject this IMMEDIATELY after the opening <svg> tag for Illustrator to parse it properly.
   if (options.metadata) {
     const xmpBlock = buildXMPMetadataBlock(options.metadata);
-    // Re-inject proper namespace declarations needed for XMP inside the block
     const xmpWithNs = xmpBlock
       .replace('xmlns:x="adobe:ns:meta/"', 'xmlns:x="adobe:ns:meta/"')
       .replace('xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"', 'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"');
-    svgString = svgString.replace('</svg>', `\n${xmpWithNs}\n</svg>`);
+    
+    // Inject immediately after the <svg ...> tag inside a <metadata> container
+    svgString = svgString.replace(/(<svg[^>]*>)/i, `$1\n<metadata id="xmp-metadata">\n${xmpWithNs}\n</metadata>`);
   }
 
   svgString = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' +
