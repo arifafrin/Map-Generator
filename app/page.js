@@ -205,29 +205,57 @@ export default function Home() {
              
              {/* Custom Freehand Drawing Mode UI */}
              <div className="pt-5 border-t border-white/5 animate-fade-in pb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 flex justify-between items-center">
-                  <span>Freehand Draw Mode</span>
-                  <span className="text-[9px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded uppercase">BETA</span>
-                </label>
-                <p className="text-[10px] text-gray-500 leading-snug mb-3">Draw custom paths without a predefined country map. Select a tool below to begin.</p>
-                <div className="grid grid-cols-2 gap-2">
-                    <button 
-                      onClick={() => { setSelectedCountry(''); setSelectedStyle('pencilmesh'); }}
-                      className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-300 ${selectedStyle === 'pencilmesh' ? 'bg-purple-500/20 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'bg-white/5 border-white/10 hover:border-purple-500/30 hover:bg-white/10'} `}
-                    >
-                       <span className="text-2xl drop-shadow-md">✏️</span>
-                       <span className={`text-[10px] font-bold text-center uppercase tracking-wider ${selectedStyle === 'pencilmesh' ? 'text-purple-300' : 'text-gray-400'}`}>Draw Neural</span>
-                    </button>
-                    <button 
-                      onClick={() => { setSelectedCountry(''); setSelectedStyle('pencilnetwork'); }}
-                      className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-300 ${selectedStyle === 'pencilnetwork' ? 'bg-orange-500/20 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.15)]' : 'bg-white/5 border-white/10 hover:border-orange-500/30 hover:bg-white/10'} `}
-                    >
-                       <span className="text-2xl drop-shadow-md">✍️</span>
-                       <span className={`text-[10px] font-bold text-center uppercase tracking-wider ${selectedStyle === 'pencilnetwork' ? 'text-orange-400' : 'text-gray-400'}`}>Draw Network</span>
-                    </button>
+                <div className="flex gap-4">
+                  
+                  {/* Option 1: Custom Draw Toggle */}
+                  <div className="flex-1">
+                     <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                       Custom Draw
+                     </label>
+                     <button 
+                       onClick={() => {
+                          if (mapStyles[selectedStyle]?.isPencil) {
+                             setSelectedStyle('colorful');
+                          } else {
+                             setSelectedCountry('');
+                             setSelectedStyle('pencilmesh');
+                          }
+                       }}
+                       className={`w-full h-[76px] flex flex-col items-center justify-center gap-2 rounded-xl border transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'bg-purple-500/20 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.15)] text-purple-300' : 'bg-white/5 border-white/10 hover:border-purple-500/30 hover:bg-white/10 text-gray-400'} `}
+                     >
+                        <span className="text-2xl drop-shadow-md">✏️</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-tight">
+                           {mapStyles[selectedStyle]?.isPencil ? 'Drawing Active' : 'Enable Pencil'}
+                        </span>
+                     </button>
+                  </div>
+
+                  {/* Option 2: Draw Style Selector */}
+                  <div className="flex-1">
+                     <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2 opacity-90">
+                       Draw Style
+                     </label>
+                     <div className={`flex flex-col gap-2 ${!mapStyles[selectedStyle]?.isPencil ? 'opacity-40 pointer-events-none grayscale' : ''}`}>
+                         <button 
+                           onClick={() => setSelectedStyle('pencilmesh')}
+                           className={`w-full flex items-center justify-center gap-2 p-2 rounded-lg border transition-all duration-300 ${selectedStyle === 'pencilmesh' ? 'bg-indigo-500/20 border-indigo-500/50 shadow-inner text-indigo-300' : 'bg-white/5 border-white/10 hover:border-indigo-500/30 text-gray-400'} `}
+                         >
+                            <span className="text-sm">🕸️</span>
+                            <span className="text-[9px] font-bold uppercase">Neural</span>
+                         </button>
+                         <button 
+                           onClick={() => setSelectedStyle('pencilnetwork')}
+                           className={`w-full flex items-center justify-center gap-2 p-2 rounded-lg border transition-all duration-300 ${selectedStyle === 'pencilnetwork' ? 'bg-orange-500/20 border-orange-500/50 shadow-inner text-orange-400' : 'bg-white/5 border-white/10 hover:border-orange-500/30 text-gray-400'} `}
+                         >
+                            <span className="text-sm">🌐</span>
+                            <span className="text-[9px] font-bold uppercase">Network</span>
+                         </button>
+                     </div>
+                  </div>
+
                 </div>
                 {mapStyles[selectedStyle]?.isPencil && (
-                   <p className="text-[10px] text-blue-300 mt-3 text-center bg-blue-900/10 py-2 rounded-md border border-blue-500/20 animate-pulse font-medium">✨ Pencil Tool Active. Draw on the right canvas!</p>
+                   <p className="text-[10px] text-purple-300 mt-4 text-center bg-purple-900/10 py-2 rounded-md border border-purple-500/20 animate-pulse font-medium">✨ Canvas is empty. Draw your shape on the right!</p>
                 )}
              </div>
           </div>
