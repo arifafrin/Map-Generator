@@ -51,19 +51,18 @@ export function generateStockKeywords(countryName, countryIso, styleConfig, layo
     countryName,
     countryIso,
     styleConfig.name,
-    layout,
-    ...coreMarketingKeywords
+    layout
   ];
 
-  // Inject style-specific psychology keywords
+  // Inject style-specific psychology keywords FIRST to give them priority
   if (styleConfig.id === 'outline' || styleConfig.id === 'exterior') {
-    initialPool.push('line', 'stroke', 'thin', 'minimalist', 'empty', 'wireframe');
+    initialPool.push('line', 'stroke', 'thin', 'minimalist', 'empty', 'wireframe', 'clean');
   }
   if (styleConfig.id === 'dark' || styleConfig.id === 'neon') {
     initialPool.push('dark', 'night', 'cyberpunk', 'futuristic', 'glowing', 'luminous');
   }
   if (styleConfig.id === 'vintage' || styleConfig.id === 'antique') {
-    initialPool.push('vintage', 'retro', 'old', 'antique', 'parchment', 'history', 'classic', 'sepia', 'travel');
+    initialPool.push('vintage', 'retro', 'old', 'antique', 'parchment', 'history', 'classic', 'sepia');
   }
   if (styleConfig.id === 'silhouette') {
     initialPool.push('black', 'solid', 'dark', 'shadow', 'shape');
@@ -78,13 +77,17 @@ export function generateStockKeywords(countryName, countryIso, styleConfig, layo
     initialPool.push('sketch', 'hand', 'drawn', 'pencil', 'doodle', 'editorial', 'artistic', 'handmade');
   }
   if (styleConfig.id === 'dotted' || styleConfig.id === 'dotshape') {
-    initialPool.push('dotted', 'dots', 'halftone', 'stipple', 'pattern', 'pointillism', 'infographic', 'data', 'visualization');
+    initialPool.push('dotted', 'dots', 'halftone', 'stipple', 'pattern', 'pointillism', 'infographic');
   }
   if (styleConfig.id === 'network') {
-    initialPool.push('network', 'global', 'technology', 'connection', 'internet', 'communication', 'cyber', 'nodes', 'orbital', 'tech', 'digital', 'data');
+    initialPool.push('network', 'global', 'technology', 'connection', 'internet', 'communication', 'cyber', 'nodes', 'digital');
   }
   
-  const finalKeywords = cleanAndFormatKeywords(initialPool, 50);
+  // Add core keywords at the end as fallbacks
+  initialPool.push(...coreMarketingKeywords);
+
+  // Hard limit to 25 keywords max per user request
+  const finalKeywords = cleanAndFormatKeywords(initialPool, 25);
   return finalKeywords.join(', ');
 }
 
@@ -134,7 +137,11 @@ export function generateStockTitle(countryName, styleConfig) {
 
 export function generateMetadataSet(countryName, styleId, hasLabels) {
   const styleConfig = { id: styleId, name: styleId }; // Fallback minimal config
-  const title = generateStockTitle(countryName, styleConfig);
+  const rawTitle = generateStockTitle(countryName, styleConfig);
+  
+  // Convert strictly to sentence case (First letter capitalized, rest lowercase)
+  const title = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1).toLowerCase();
+  
   const keywords = generateStockKeywords(countryName, countryName.substring(0,3).toUpperCase(), styleConfig, 'landscape');
   const description = `Discover our premium ${title}. This highly detailed vector map is fully editable, layered, and scalable without any loss of quality. Perfect for infographics, educational materials, presentations, and digital design projects. ${hasLabels ? 'Includes detailed administrative labels.' : 'Clean blank outline.'}`;
   
