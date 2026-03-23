@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { mapStyles } from '../utils/colorUtils';
 
-export default function StyleSelector({ selectedStyle, onSelect }) {
-  const styles = Object.values(mapStyles).filter(s => !s.isPencil);
+export default function StyleSelector({ selectedStyle, onSelect, label = "Map Style", stylesList }) {
+  const styles = stylesList || Object.values(mapStyles).filter(s => !s.isPencil);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -24,7 +24,7 @@ export default function StyleSelector({ selectedStyle, onSelect }) {
   return (
     <div className="relative" ref={dropdownRef}>
       <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-        Map Style
+        {label}
       </label>
       
       <button

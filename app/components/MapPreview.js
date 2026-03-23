@@ -535,7 +535,22 @@ export default memo(function MapPreview({
             
             {/* Direct pencil geometry render bypass */}
             {styleConfig.isPencil && allPaths.filter(p => `${p.id}`.startsWith('drawn')).map((path, idx) => {
-               return renderPath(path, 1000 + idx);
+               // Provide dynamic raw visual feedback for user pencil drawing
+               const isCurrentlyDrawing = path.id === 'drawn-curr';
+               const forcedStroke = isCurrentlyDrawing ? '#ffffff' : 'rgba(255,255,255,0.05)';
+               const forcedStrokeWidth = isCurrentlyDrawing ? 2 : 0;
+               return (
+                 <path
+                   key={`pencil-raw-${idx}`}
+                   d={path.d}
+                   fill="transparent"
+                   stroke={forcedStroke}
+                   strokeWidth={forcedStrokeWidth}
+                   strokeLinecap="round"
+                   strokeLinejoin="round"
+                   pointerEvents="none"
+                 />
+               );
             })}
           </g>
 

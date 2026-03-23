@@ -94,7 +94,10 @@ export default function Home() {
 
   // Load Map Data
   useEffect(() => {
-    if (!selectedCountry) return;
+    if (!selectedCountry) {
+       setGeoData(null);
+       return;
+    }
     setLoading(true);
     setError(null);
     fetch(`/api/geojson?code=${selectedCountry}`)
@@ -205,58 +208,50 @@ export default function Home() {
              
              {/* Custom Freehand Drawing Mode UI */}
              <div className="pt-5 border-t border-white/5 animate-fade-in pb-4">
-                <div className="flex gap-4">
-                  
-                  {/* Option 1: Custom Draw Toggle */}
-                  <div className="flex-1">
-                     <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                       Custom Draw
-                     </label>
-                     <button 
-                       onClick={() => {
-                          if (mapStyles[selectedStyle]?.isPencil) {
-                             setSelectedStyle('colorful');
-                          } else {
-                             setSelectedCountry('');
-                             setSelectedStyle('pencilmesh');
-                          }
-                       }}
-                       className={`w-full h-[76px] flex flex-col items-center justify-center gap-2 rounded-xl border transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'bg-purple-500/20 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.15)] text-purple-300' : 'bg-white/5 border-white/10 hover:border-purple-500/30 hover:bg-white/10 text-gray-400'} `}
-                     >
-                        <span className="text-2xl drop-shadow-md">✏️</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-tight">
-                           {mapStyles[selectedStyle]?.isPencil ? 'Drawing Active' : 'Enable Pencil'}
-                        </span>
-                     </button>
-                  </div>
-
-                  {/* Option 2: Draw Style Selector */}
-                  <div className="flex-1">
-                     <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2 opacity-90">
-                       Draw Style
-                     </label>
-                     <div className={`flex flex-col gap-2 ${!mapStyles[selectedStyle]?.isPencil ? 'opacity-40 pointer-events-none grayscale' : ''}`}>
-                         <button 
-                           onClick={() => setSelectedStyle('pencilmesh')}
-                           className={`w-full flex items-center justify-center gap-2 p-2 rounded-lg border transition-all duration-300 ${selectedStyle === 'pencilmesh' ? 'bg-indigo-500/20 border-indigo-500/50 shadow-inner text-indigo-300' : 'bg-white/5 border-white/10 hover:border-indigo-500/30 text-gray-400'} `}
-                         >
-                            <span className="text-sm">🕸️</span>
-                            <span className="text-[9px] font-bold uppercase">Neural</span>
-                         </button>
-                         <button 
-                           onClick={() => setSelectedStyle('pencilnetwork')}
-                           className={`w-full flex items-center justify-center gap-2 p-2 rounded-lg border transition-all duration-300 ${selectedStyle === 'pencilnetwork' ? 'bg-orange-500/20 border-orange-500/50 shadow-inner text-orange-400' : 'bg-white/5 border-white/10 hover:border-orange-500/30 text-gray-400'} `}
-                         >
-                            <span className="text-sm">🌐</span>
-                            <span className="text-[9px] font-bold uppercase">Network</span>
-                         </button>
-                     </div>
-                  </div>
-
+                <div className="flex items-center justify-between mb-4">
+                   <label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                     Freehand Draw Mode
+                   </label>
+                   <span className="text-[9px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded uppercase">BETA</span>
                 </div>
-                {mapStyles[selectedStyle]?.isPencil && (
-                   <p className="text-[10px] text-purple-300 mt-4 text-center bg-purple-900/10 py-2 rounded-md border border-purple-500/20 animate-pulse font-medium">✨ Canvas is empty. Draw your shape on the right!</p>
-                )}
+                
+                <div className="flex flex-col gap-4">
+                  
+                  {/* Custom Draw Toggle */}
+                  <button 
+                    onClick={() => {
+                       if (mapStyles[selectedStyle]?.isPencil) {
+                          setSelectedStyle('colorful');
+                       } else {
+                          setSelectedCountry('');
+                          setSelectedStyle('pencilmesh');
+                       }
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'bg-blue-500/20 border-blue-500/50 shadow-inner' : 'bg-white/5 border-white/10 hover:border-blue-500/30 hover:bg-white/10'} `}
+                  >
+                     <div className="flex items-center gap-3">
+                        <span className="text-xl">✏️</span>
+                        <span className={`text-sm font-bold tracking-wide ${mapStyles[selectedStyle]?.isPencil ? 'text-blue-300' : 'text-gray-300'}`}>
+                           Enable Pencil Tool
+                        </span>
+                     </div>
+                     <div className={`w-10 h-5 rounded-full p-1 transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'bg-blue-500' : 'bg-white/10'} `}>
+                         <div className={`w-3 h-3 rounded-full bg-white transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'translate-x-5' : ''}`} />
+                     </div>
+                  </button>
+
+                  {/* Draw Style Dropdown - Uses existing StyleSelector */}
+                  <div className={`transition-all duration-300 ${!mapStyles[selectedStyle]?.isPencil ? 'opacity-40 pointer-events-none grayscale max-h-0 overflow-hidden' : 'max-h-[200px]'}`}>
+                     <StyleSelector
+                       selectedStyle={selectedStyle}
+                       onSelect={setSelectedStyle}
+                       label="Drawing Style"
+                       stylesList={[mapStyles.pencilmesh, mapStyles.pencilnetwork]}
+                     />
+                     <p className="text-[10px] text-blue-300 mt-4 text-center bg-blue-900/10 py-2 rounded-md border border-blue-500/20 animate-pulse font-medium">✨ Canvas is blank. Draw your shape on the right!</p>
+                  </div>
+                  
+                </div>
              </div>
           </div>
           
