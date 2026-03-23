@@ -38,17 +38,27 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
     return `${cName}-${selectedStyle}-vector-map`;
   };
 
+  const getExportableSvg = () => {
+    // Direct ref first (fastest path)
+    if (svgRef) return svgRef;
+    // Fallback: query the map canvas SVG from DOM directly
+    const domSvg = document.querySelector('#map-canvas svg');
+    return domSvg || null;
+  };
+
   const validateMapStatus = () => {
-    if (!svgRef || !geoData || geoData.features.length === 0) {
-      alert("Map data is missing or incomplete. Cannot export.");
-      return false;
+    const svgEl = getExportableSvg();
+    if (!svgEl || !geoData || geoData.features.length === 0) {
+      alert("Map data is still loading or incomplete. Please wait for the map to fully render before exporting.");
+      return null;
     }
-    return true;
+    return svgEl;
   };
 
   // 1. Handle stock-ready ZIP export (The primary CTA)
   const handleStockZipExport = async () => {
-    if (!validateMapStatus()) return;
+    const svgEl = validateMapStatus();
+    if (!svgEl) return;
     
     // Check Duplicate Engine
     const signature = `${countryName}-${selectedStyle}-${hasLabels ? 'labeled' : 'unlabeled'}`;
@@ -62,7 +72,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
     try {
       // Use locally edited metadata or generate fresh
       const meta = currentMetadata || generateMetadataSet(countryName, selectedStyle, hasLabels);
-      await downloadZIPPackage(svgRef, meta, getSaneFileName(), { bgMode, customBgColor, style: selectedStyle });
+      await downloadZIPPackage(svgEl, meta, getSaneFileName(), { bgMode, customBgColor, style: selectedStyle });
       setExportedSignatures(prev => new Set(prev).add(signature));
     } catch (err) {
       console.error("Export failed:", err);
@@ -74,12 +84,13 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
 
   // 2. Handle simple standalone SVG download
   const handleSvgExport = async () => {
-    if (!validateMapStatus()) return;
+    const svgEl = validateMapStatus();
+    if (!svgEl) return;
     setIsExporting(true);
     
     // Generate metadata and pass into SVG so XMP is embedded in File > File Info
     const meta = currentMetadata || generateMetadataSet(countryName, selectedStyle, hasLabels);
-    const svgString = await buildStockReadySVG(svgRef, countryName, { 
+    const svgString = await buildStockReadySVG(svgEl, countryName, { 
       stripLabels: false, bgMode, customBgColor, style: selectedStyle, metadata: meta
     });
     downloadSVGFile(svgString, `${getSaneFileName()}.svg`);
@@ -89,10 +100,11 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
   
   // 3. Handle standalone PNG
   const handlePngExport = async () => {
-     if (!validateMapStatus()) return;
+     const svgEl = validateMapStatus();
+     if (!svgEl) return;
      setIsExporting(true);
      try {
-       const blob = await generatePNGBlob(svgRef);
+       const blob = await generatePNGBlob(svgEl);
        saveAs(blob, `${getSaneFileName()}-preview.png`);
      } catch(e) {
        console.error("PNG render failed", e);
@@ -102,7 +114,8 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
   
   // 4. Handle Bulk Generation (10 Variations MEGA ZIP)
   const handleBulkExport = async () => {
-     if (!validateMapStatus()) return;
+     const svgEl = validateMapStatus();
+     if (!svgEl) return;
      
      const bulkSignature = `bulk-10-${countryName}`;
      if (exportedSignatures.has(bulkSignature)) {
@@ -134,7 +147,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
            const subFolder = stockFolder.folder(v.name);
            const md = generateMetadataSet(countryName, v.styleId, false); // Generate baseline SEO for this specific style
            
-           const clone = svgRef.cloneNode(true);
+           const clone = svgEl.cloneNode(true);
            clone.style.background = v.bg;
            
            // Recoloring the clone directly
