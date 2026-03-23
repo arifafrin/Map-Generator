@@ -302,18 +302,22 @@ export default memo(function MapPreview({
      if (groups) _paths = _paths.concat(groups.flatMap(g => g.paths));
      
      if (styleConfig.isPencil) {
+         const customFill = (styleConfig.isOutlineOnly && !styleConfig.isDotted) || styleConfig.isNeuralMesh 
+                            ? 'transparent' 
+                            : (colors[0] || styleConfig.regionColors[0] || '#ffffff');
+                            
          drawnPaths.forEach((pathObj, i) => {
              const d = 'M ' + pathObj.points.map(pt => `${parseFloat(pt.x.toFixed(2))},${parseFloat(pt.y.toFixed(2))}`).join(' L ') + (pathObj.isClosed ? ' Z' : '');
              _paths.push({
                  id: `drawn-${i}`, index: 1000 + i, name: 'Drawn Layer',
-                 d, centroid: null, fillColor: 'transparent'
+                 d, centroid: null, fillColor: customFill
              });
          });
          if (currentPath && currentPath.length > 0) {
              const d = 'M ' + currentPath.map(pt => `${parseFloat(pt.x.toFixed(2))},${parseFloat(pt.y.toFixed(2))}`).join(' L ');
              _paths.push({
                  id: `drawn-curr`, index: 9999, name: 'Drawing...',
-                 d, centroid: null, fillColor: 'transparent'
+                 d, centroid: null, fillColor: customFill
              });
          }
      }

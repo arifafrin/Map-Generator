@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { mapStyles } from '../utils/colorUtils';
 
 export default function StyleSelector({ selectedStyle, onSelect }) {
-  const styles = Object.values(mapStyles);
+  const styles = Object.values(mapStyles).filter(s => !s.isPencil);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
