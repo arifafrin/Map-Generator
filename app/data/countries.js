@@ -183,12 +183,70 @@ const countries = [
   { code: 'SUR', name: 'Suriname', continent: 'South America', flag: '🇸🇷' },
   { code: 'URY', name: 'Uruguay', continent: 'South America', flag: '🇺🇾' },
   { code: 'VEN', name: 'Venezuela', continent: 'South America', flag: '🇻🇪' },
+  { code: 'FLK', name: 'Falkland Islands', continent: 'South America', flag: '🇫🇰' },
 
   // ─── OCEANIA ─────────────────────────────────────────────
   { code: 'AUS', name: 'Australia', continent: 'Oceania', flag: '🇦🇺' },
   { code: 'FJI', name: 'Fiji', continent: 'Oceania', flag: '🇫🇯' },
+  { code: 'KIR', name: 'Kiribati', continent: 'Oceania', flag: '🇰🇮' },
+  { code: 'MHL', name: 'Marshall Islands', continent: 'Oceania', flag: '🇲🇭' },
+  { code: 'FSM', name: 'Micronesia', continent: 'Oceania', flag: '🇫🇲' },
+  { code: 'NRU', name: 'Nauru', continent: 'Oceania', flag: '🇳🇷' },
+  { code: 'NCL', name: 'New Caledonia', continent: 'Oceania', flag: '🌐' },
   { code: 'NZL', name: 'New Zealand', continent: 'Oceania', flag: '🇳🇿' },
+  { code: 'PLW', name: 'Palau', continent: 'Oceania', flag: '🇵🇼' },
   { code: 'PNG', name: 'Papua New Guinea', continent: 'Oceania', flag: '🇵🇬' },
+  { code: 'WSM', name: 'Samoa', continent: 'Oceania', flag: '🇼🇸' },
+  { code: 'SLB', name: 'Solomon Islands', continent: 'Oceania', flag: '🇸🇧' },
+  { code: 'TON', name: 'Tonga', continent: 'Oceania', flag: '🇹🇴' },
+  { code: 'TUV', name: 'Tuvalu', continent: 'Oceania', flag: '🇹🇻' },
+  { code: 'VUT', name: 'Vanuatu', continent: 'Oceania', flag: '🇻🇺' },
+  { code: 'PYF', name: 'French Polynesia', continent: 'Oceania', flag: '🌐' },
+
+  // ─── AFRICA (NEW) ─────────────────────────────────────────
+  { code: 'CPV', name: 'Cabo Verde', continent: 'Africa', flag: '🇨🇻' },
+  { code: 'COM', name: 'Comoros', continent: 'Africa', flag: '🇰🇲' },
+  { code: 'SDS', name: 'South Sudan', continent: 'Africa', flag: '🇸🇸' },
+  { code: 'STP', name: 'São Tomé and Príncipe', continent: 'Africa', flag: '🇸🇹' },
+  { code: 'SYC', name: 'Seychelles', continent: 'Africa', flag: '🇸🇨' },
+  { code: 'MUS', name: 'Mauritius', continent: 'Africa', flag: '🇲🇺' },
+
+  // ─── ASIA (NEW) ───────────────────────────────────────────
+  { code: 'ARM', name: 'Armenia', continent: 'Asia', flag: '🇦🇲' },
+  { code: 'AZE', name: 'Azerbaijan', continent: 'Asia', flag: '🇦🇿' },
+  { code: 'BHR', name: 'Bahrain', continent: 'Asia', flag: '🇧🇭' },
+  { code: 'GEO', name: 'Georgia', continent: 'Asia', flag: '🇬🇪' },
+  { code: 'HKG', name: 'Hong Kong', continent: 'Asia', flag: '🇭🇰' },
+  { code: 'MDV', name: 'Maldives', continent: 'Asia', flag: '🇲🇻' },
+  { code: 'PSX', name: 'Palestine', continent: 'Asia', flag: '🇵🇸' },
+  { code: 'SGP', name: 'Singapore', continent: 'Asia', flag: '🇸🇬' },
+  { code: 'MAC', name: 'Macao', continent: 'Asia', flag: '🇲🇴' },
+
+  // ─── EUROPE (NEW) ─────────────────────────────────────────
+  { code: 'AND', name: 'Andorra', continent: 'Europe', flag: '🇦🇩' },
+  { code: 'KOS', name: 'Kosovo', continent: 'Europe', flag: '🌐' },
+  { code: 'LIE', name: 'Liechtenstein', continent: 'Europe', flag: '🇱🇮' },
+  { code: 'MLT', name: 'Malta', continent: 'Europe', flag: '🇲🇹' },
+  { code: 'MCO', name: 'Monaco', continent: 'Europe', flag: '🇲🇨' },
+  { code: 'SMR', name: 'San Marino', continent: 'Europe', flag: '🇸🇲' },
+  { code: 'VAT', name: 'Vatican City', continent: 'Europe', flag: '🇻🇦' },
+  { code: 'GIB', name: 'Gibraltar', continent: 'Europe', flag: '🇬🇮' },
+  { code: 'FRO', name: 'Faroe Islands', continent: 'Europe', flag: '🇫🇴' },
+
+  // ─── NORTH AMERICA (NEW: CARIBBEAN) ──────────────────────
+  { code: 'ATG', name: 'Antigua and Barbuda', continent: 'North America', flag: '🇦🇬' },
+  { code: 'BHS', name: 'Bahamas', continent: 'North America', flag: '🇧🇸' },
+  { code: 'BRB', name: 'Barbados', continent: 'North America', flag: '🇧🇧' },
+  { code: 'ABW', name: 'Aruba', continent: 'North America', flag: '🇦🇼' },
+  { code: 'CUW', name: 'Curaçao', continent: 'North America', flag: '🌐' },
+  { code: 'DMA', name: 'Dominica', continent: 'North America', flag: '🇩🇲' },
+  { code: 'GRL', name: 'Greenland', continent: 'North America', flag: '🇬🇱' },
+  { code: 'GRD', name: 'Grenada', continent: 'North America', flag: '🇬🇩' },
+  { code: 'KNA', name: 'Saint Kitts and Nevis', continent: 'North America', flag: '🇰🇳' },
+  { code: 'LCA', name: 'Saint Lucia', continent: 'North America', flag: '🇱🇨' },
+  { code: 'VCT', name: 'St. Vincent and the Grenadines', continent: 'North America', flag: '🇻🇨' },
+  { code: 'BMU', name: 'Bermuda', continent: 'North America', flag: '🇧🇲' },
+  { code: 'PRI', name: 'Puerto Rico', continent: 'North America', flag: '🇵🇷' },
 ];
 
 export const continents = ['All', 'Global', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
