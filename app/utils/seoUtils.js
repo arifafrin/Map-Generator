@@ -92,47 +92,45 @@ export function generateStockKeywords(countryName, countryIso, styleConfig, layo
 }
 
 export function generateStockTitle(countryName, styleConfig) {
-  const baseTitle = `${countryName} Vector Administrative Map`;
-  
-  // Stock-optimized titles for each style
+  // Always start with the Country Name so it stays capitalized during sentence casing
   if (styleConfig.id === 'outline') {
-    return `${baseTitle} - Detailed Outline Borders on Blank Background`;
+    return `${countryName} vector administrative map with detailed outline borders on blank background`;
   }
   if (styleConfig.id === 'exterior') {
-    return `${countryName} Exterior Outline Shape - Clean Silhouette Vector Border`;
+    return `${countryName} exterior outline shape with clean silhouette vector border`;
   }
   if (styleConfig.id === 'dark' || styleConfig.id === 'neon') {
-    return `Premium Dark UI Vector Map of ${countryName} - Modern Tech Design`;
+    return `${countryName} premium dark ui vector map featuring modern glowing tech design`;
   }
   if (styleConfig.id === 'vintage') {
-    return `Classic Vintage Style Vector Map of ${countryName} - Historical Atlas Design`;
+    return `${countryName} classic vintage style vector map with historical atlas design`;
   }
   if (styleConfig.id === 'antique') {
-    return `Antique Sepia Vector Map of ${countryName} - Historical Travel Illustration`;
+    return `${countryName} antique sepia vector map with historical travel illustration`;
   }
   if (styleConfig.id === 'silhouette') {
-    return `${countryName} Solid Black Silhouette Map - Isolated Vector Shape`;
+    return `${countryName} solid black silhouette map as an isolated vector shape`;
   }
   if (styleConfig.id === 'monochrome') {
-    return `${countryName} Monochrome Grayscale Vector Map - Print Ready Administrative Map`;
+    return `${countryName} monochrome grayscale vector map for print ready administrative layout`;
   }
   if (styleConfig.id === 'heatmap') {
-    return `${countryName} Heat Map Vector - Data Visualization Color Gradient Template`;
+    return `${countryName} heat map vector showing data visualization color gradient template`;
   }
   if (styleConfig.id === 'sketch') {
-    return `${countryName} Hand-Drawn Sketch Vector Map - Artistic Editorial Illustration`;
+    return `${countryName} hand drawn sketch vector map with artistic editorial illustration`;
   }
   if (styleConfig.id === 'dotted') {
-    return `${countryName} Dotted Pattern Vector Map - Halftone Infographic Data Template`;
+    return `${countryName} dotted pattern vector map for halftone infographic data template`;
   }
   if (styleConfig.id === 'dotshape') {
-    return `${countryName} Dot Shape Silhouette Map - Pure Halftone Pointillism Vector`;
+    return `${countryName} dot shape silhouette map showing pure halftone pointillism vector`;
   }
   if (styleConfig.id === 'network') {
-    return `${countryName} Abstract Global Tech Network Map - Digital Connection Vector`;
+    return `${countryName} abstract global tech network map showing digital connection vector`;
   }
   
-  return `${baseTitle} - High Quality Colorful Graphic Blank Template`;
+  return `${countryName} vector administrative map featuring high quality colorful graphic design`;
 }
 
 export function generateMetadataSet(countryName, styleId, hasLabels) {
