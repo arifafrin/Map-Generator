@@ -224,7 +224,7 @@ export default function Home() {
                           setSelectedStyle('colorful');
                        } else {
                           setSelectedCountry('');
-                          setSelectedStyle('pencilmesh');
+                          setSelectedStyle('pencilbasic');
                        }
                     }}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'bg-blue-500/20 border-blue-500/50 shadow-inner' : 'bg-white/5 border-white/10 hover:border-blue-500/30 hover:bg-white/10'} `}
@@ -246,7 +246,7 @@ export default function Home() {
                        selectedStyle={selectedStyle}
                        onSelect={setSelectedStyle}
                        label="Drawing Style"
-                       stylesList={[mapStyles.pencilmesh, mapStyles.pencilnetwork]}
+                       stylesList={[mapStyles.pencilbasic, mapStyles.pencilmesh, mapStyles.pencilnetwork]}
                      />
                      <p className="text-[10px] text-blue-300 mt-4 text-center bg-blue-900/10 py-2 rounded-md border border-blue-500/20 animate-pulse font-medium">✨ Canvas is blank. Draw your shape on the right!</p>
                   </div>

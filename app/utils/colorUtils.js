@@ -205,6 +205,14 @@ export const mapStyles = {
     isOutlineOnly: true, // Forces the actual region shapes to be completely transparent
     regionColors: aiColorThemes.vibrant, // The mesh dots and lines exclusively use this palette!
   },
+  pencilbasic: {
+    id: 'pencilbasic', name: 'Raw Outline', icon: '📝',
+    background: '#0a0a0f',
+    stroke: '#ffffff', strokeWidth: 2,
+    fontColor: '#ffffff', fontFamily: 'Courier New, monospace',
+    isPencil: true,
+    regionColors: ['transparent'],
+  },
   pencilmesh: {
     id: 'pencilmesh', name: 'Custom Draw (Neural)', icon: '✏️',
     background: '#ffffff',

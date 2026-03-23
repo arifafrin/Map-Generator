@@ -556,7 +556,7 @@ export default memo(function MapPreview({
 
 
           {/* Abstract Global Network Overlay — Single Large Atom */}
-          {styleConfig.isNetwork && (
+          {(styleConfig.isNetwork && (!styleConfig.isPencil || (styleConfig.isPencil && drawnPaths.length > 0))) && (
             <g id="network-overlay">
               
               {/* ONE Large Atom positioned by user controls */}
