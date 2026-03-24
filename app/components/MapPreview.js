@@ -553,9 +553,9 @@ export default memo(function MapPreview({
           opacity: (isHovered && !styleConfig.glow && !isDrawn) ? 0.85 : 1,
           filter: filterUrl,
         }}
-        onMouseEnter={() => !isDrawn && setHoveredRegion(path.index)}
-        onMouseLeave={() => !isDrawn && setHoveredRegion(null)}
-        onClick={() => !isDrawn && onRegionSelect && onRegionSelect(path.index)}
+        onMouseEnter={!isDrawn ? () => setHoveredRegion(path.index) : undefined}
+        onMouseLeave={!isDrawn ? () => setHoveredRegion(null) : undefined}
+        onClick={!isDrawn ? () => onRegionSelect && onRegionSelect(path.index) : undefined}
       >
         <title>{path.name}</title>
       </path>
@@ -734,12 +734,25 @@ export default memo(function MapPreview({
                       />
                     )}
                     
-                    {/* Invisible Hitbox for dragging the entire atom construct! */}
-                    <circle 
-                      cx={cx} cy={cy} r={atomR * 0.25} 
+                    {/* INVISIBLE DRAG HITBOX FOR THE ATOM NUCLEUS */}
+                     <circle 
+                      cx={cx} cy={cy} r={atomR * 0.35} 
                       fill="transparent" 
                       className="cursor-move hover:cursor-grab active:cursor-grabbing"
                       onPointerDown={(e) => handleAtomPointerDown(e, atom.id, cx, cy)}
+                      onWheel={(e) => {
+                         if (e.altKey && setAtomPositions) {
+                            e.stopPropagation();
+                            const scaleDelta = e.deltaY > 0 ? -4 : 4;
+                            setAtomPositions(prev => prev.map(a => {
+                               if (a.id === atom.id) {
+                                   const currentSize = a.size ?? atomSize;
+                                   return { ...a, size: Math.max(5, Math.min(250, currentSize + scaleDelta)) };
+                               }
+                               return a;
+                            }));
+                         }
+                      }}
                       style={{ pointerEvents: 'all' }}
                     />
 
