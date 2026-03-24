@@ -51,7 +51,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
   const validateMapStatus = () => {
     const svgEl = getExportableSvg();
     if (!svgEl || !isValidToExport) {
-      alert("Map data is still loading or incomplete. Please wait for the map to fully render before exporting.");
+      alert("Please select a country or draw a shape first before exporting.");
       return null;
     }
     return svgEl;
@@ -65,7 +65,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
     // Check Duplicate Engine
     const signature = `${countryName}-${selectedStyle}-${hasLabels ? 'labeled' : 'unlabeled'}`;
     if (exportedSignatures.has(signature)) {
-       const proceed = window.confirm("⚠️ Stock Duplicate Engine Warning:\nYou have already exported this exact mapping configuration. Are you sure you want to export it again? Uploading duplicates to Adobe Stock can result in account suspension.");
+        const proceed = window.confirm("You have already exported this exact map design. Do you want to export it again?");
        if (!proceed) return;
     }
     
@@ -78,7 +78,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
       setExportedSignatures(prev => new Set(prev).add(signature));
     } catch (err) {
       console.error("Export failed:", err);
-      alert("Failed to export Zip package. Check console for details.");
+      alert("Export failed. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -121,7 +121,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
      
      const bulkSignature = `bulk-10-${countryName}`;
      if (exportedSignatures.has(bulkSignature)) {
-        const proceed = window.confirm("⚠️ Stock Duplicate Warning:\nYou've already exported the 10-variation bulk pack for this country. Proceed anyway?");
+         const proceed = window.confirm("You've already exported all styles for this country. Export again?");
         if (!proceed) return;
      }
 
@@ -185,7 +185,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
        
      } catch (err) {
        console.error("Bulk Generation Failed", err);
-       alert("Failed to build Bulk Collection.");
+        alert("Bulk export failed. Please try again.");
      } finally {
        setIsExporting(false);
      }
@@ -224,7 +224,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
           {isExporting ? (
             <>
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Packaging...
+               Exporting...
             </>
           ) : (
             <>

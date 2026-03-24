@@ -289,8 +289,8 @@ export default function Home() {
         <aside className="w-[320px] flex flex-col h-full border-r border-white/5 bg-[#08080c] animate-slide-in-right">
           <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01] shrink-0 flex justify-between items-center h-[72px]">
              <div>
-                <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Color Engine</h2>
-                <p className="text-[10px] text-gray-600 mt-1 uppercase">Palette Mapping</p>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Colors</h2>
+                <p className="text-[10px] text-gray-600 mt-1 uppercase">Choose Your Colors</p>
              </div>
              <button onClick={handleMagicMap} className="px-3 py-1.5 rounded-md bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-500/20 text-orange-400 hover:text-orange-300 text-[10px] font-bold uppercase transition-all flex items-center gap-1 active:scale-95" title="Randomize Colors & Layout">✨ Magic</button>
           </div>
@@ -313,8 +313,8 @@ export default function Home() {
         {/* COLUMN 3: DETAILS & EXPORT */}
         <aside className="w-[340px] flex flex-col h-full border-r border-white/5 bg-[#050508] animate-slide-in-right" style={{animationDelay: '100ms'}}>
           <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01] shrink-0 h-[72px] flex flex-col justify-center">
-             <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Map Parameters</h2>
-             <p className="text-[10px] text-gray-600 mt-1 uppercase">Advanced Config</p>
+             <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Settings</h2>
+             <p className="text-[10px] text-gray-600 mt-1 uppercase">Customize Your Map</p>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-5 pb-8 space-y-6">
              <DetailControls
@@ -348,12 +348,12 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <div className={`w-2.5 h-2.5 rounded-full ${geoData ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'bg-gray-600'}`} />
             <span className="text-xs text-gray-400 font-medium tracking-wide">
-              {loading ? 'Compiling GeoJSON...' : geoData ? `Renderer Active · ${geoData.features?.length || 0} Regions` : 'Standby'}
+              {loading ? 'Loading Map...' : geoData ? `Ready · ${geoData.features?.length || 0} Regions` : 'Standby'}
             </span>
           </div>
           {geoData && (
              <div className="flex gap-4">
-                <span className="text-[10px] text-gray-500 font-mono uppercase bg-white/5 px-2 py-1 rounded">Style: {selectedStyle}</span>
+                <span className="text-[10px] text-gray-500 font-mono uppercase bg-white/5 px-2 py-1 rounded">Style: {mapStyles[selectedStyle]?.name || selectedStyle}</span>
                 <span className="text-[10px] text-gray-500 font-mono uppercase bg-white/5 px-2 py-1 rounded">Layout: {layout}</span>
              </div>
           )}
@@ -370,7 +370,7 @@ export default function Home() {
               <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 shadow-xl shadow-purple-500/20">
                  <div className="w-6 h-6 border-2 border-purple-500/30 border-t-purple-400 rounded-full animate-spin" />
               </div>
-              <p className="text-[11px] uppercase tracking-widest font-bold text-gray-400 animate-pulse">Parsing Geometry</p>
+              <p className="text-[11px] uppercase tracking-widest font-bold text-gray-400 animate-pulse">Loading Map...</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center gap-4 text-center z-10 max-w-sm">
@@ -381,7 +381,7 @@ export default function Home() {
               </div>
               <p className="text-sm font-bold text-red-300 tracking-wide">Map Unavailable</p>
               <p className="text-xs text-gray-500 leading-relaxed">{error}</p>
-              <p className="text-[10px] text-gray-600 mt-2">Try selecting a different country, or check your internet connection for CDN fallback.</p>
+              <p className="text-[10px] text-gray-600 mt-2">Try selecting a different country or check your internet connection.</p>
             </div>
           ) : (geoData || mapStyles[selectedStyle]?.isPencil) ? (
              <div className="relative z-10 rounded-xl overflow-hidden shadow-2xl transition-all duration-500 border border-white/5" style={{

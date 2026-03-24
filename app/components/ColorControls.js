@@ -113,7 +113,7 @@ export default function ColorControls({ selectedCountry, geoData, colors, onColo
       <div className="bg-gradient-to-b from-white/[0.05] to-transparent border border-white/10 border-t-white/20 rounded-xl p-4 shadow-xl backdrop-blur-xl relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
         <h3 className="text-[11px] uppercase text-gray-400 font-bold mb-4 flex items-center gap-2">
-          <span className="text-sm">✨</span> Color Engine
+          <span className="text-sm">✨</span> Color Settings
         </h3>
 
         {/* Mode selectors */}
