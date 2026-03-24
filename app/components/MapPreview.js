@@ -525,11 +525,12 @@ export default memo(function MapPreview({
     
     const isSelected = selectedRegion === path.index;
     const isHovered = hoveredRegion === path.index;
+    const isDrawn = path.id && String(path.id).startsWith('drawn-');
     
     let displayFill = path.fillColor;
     if (styleConfig.isGradientFill) displayFill = `url(#grad-${path.id})`;
     if (styleConfig.isDotted) displayFill = `url(#dot-${path.id})`;
-    if (isSelected && !styleConfig.isOutlineOnly) displayFill = '#ffd700';
+    if (isSelected && !styleConfig.isOutlineOnly && !isDrawn) displayFill = '#ffd700';
     
     const displayStroke = isHovered ? '#ffffff' : styleConfig.stroke;
     const filterUrl = styleConfig.glow && (isHovered || isSelected) 
@@ -549,12 +550,12 @@ export default memo(function MapPreview({
         strokeLinecap="round"
         className="transition-all duration-300 cursor-pointer"
         style={{
-          opacity: isHovered && !styleConfig.glow ? 0.85 : 1,
+          opacity: (isHovered && !styleConfig.glow && !isDrawn) ? 0.85 : 1,
           filter: filterUrl,
         }}
-        onMouseEnter={() => setHoveredRegion(path.index)}
-        onMouseLeave={() => setHoveredRegion(null)}
-        onClick={() => onRegionSelect && onRegionSelect(path.index)}
+        onMouseEnter={() => !isDrawn && setHoveredRegion(path.index)}
+        onMouseLeave={() => !isDrawn && setHoveredRegion(null)}
+        onClick={() => !isDrawn && onRegionSelect && onRegionSelect(path.index)}
       >
         <title>{path.name}</title>
       </path>
