@@ -82,7 +82,7 @@ export default function Home() {
     }
   }, [selectedStyle, isLoaded]);
 
-  const countryName = countries.find(c => c.code === selectedCountry)?.name;
+  const countryName = countries.find(c => c.code === selectedCountry)?.name || 'Custom Region';
   
   // Intercept specific sub-national regions that lack standard top-level ISO-3166-1 alpha-3 sovereignty
   const customIsoMap = {
