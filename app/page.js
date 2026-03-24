@@ -36,9 +36,9 @@ export default function Home() {
   const [pinColor, setPinColor] = useState('#ef4444');
 
   // Atom Settings State (for Network style)
-  const [showAtom, setShowAtom] = useState(true);
-  const [atomPositions, setAtomPositions] = useState([{ id: 'atom-0', x: 50, y: 50 }]); 
-  const [activeAtomId, setActiveAtomId] = useState('atom-0');
+  const [showAtom, setShowAtom] = useState(false);
+  const [atomPositions, setAtomPositions] = useState([]); 
+  const [activeAtomId, setActiveAtomId] = useState(null);
   const [electronCount, setElectronCount] = useState(12);
   const [atomSize, setAtomSize] = useState(32); // percentage 10-100
 

@@ -324,7 +324,16 @@ export default function DetailControls({
                <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Atom Generator</p>
             </div>
             <button 
-              onClick={() => setShowAtom(!showAtom)}
+              onClick={() => {
+                const newState = !showAtom;
+                setShowAtom(newState);
+                // Seed a default atom at center if enabling with empty list
+                if (newState && atomPositions && atomPositions.length === 0) {
+                  const seedId = `atom-${Date.now()}`;
+                  setAtomPositions([{ id: seedId, x: 50, y: 50 }]);
+                  setActiveAtomId(seedId);
+                }
+              }}
               className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showAtom ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10 hover:bg-white/20'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform duration-300 ${showAtom ? 'translate-x-5' : 'translate-x-0'}`} />

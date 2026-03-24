@@ -297,6 +297,32 @@ export default memo(function MapPreview({
              isClosed = true;
           }
           setDrawnPaths(prev => [...prev, { points: finalPath, isClosed }]);
+          
+          // AUTO-ATOM SPAWNING: Place an atom at the center of the drawn shape
+          if (showAtom && setAtomPositions) {
+             // Compute bounding box of the drawn shape
+             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+             finalPath.forEach(pt => {
+               if (pt.x < minX) minX = pt.x;
+               if (pt.y < minY) minY = pt.y;
+               if (pt.x > maxX) maxX = pt.x;
+               if (pt.y > maxY) maxY = pt.y;
+             });
+             
+             // Center of bounding box in percent coordinates
+             const centerX = ((minX + maxX) / 2 / dimensions.width) * 100;
+             const centerY = ((minY + maxY) / 2 / dimensions.height) * 100;
+             
+             // Shape size in viewport units, derive atom size as ~60% of the smaller dimension
+             const shapeW = maxX - minX;
+             const shapeH = maxY - minY;
+             const shapeSizePercent = (Math.min(shapeW, shapeH) / Math.min(dimensions.width, dimensions.height)) * 100;
+             const autoAtomSize = Math.max(8, Math.min(80, shapeSizePercent * 0.6));
+             
+             const newAtomId = `atom-${Date.now()}`;
+             setAtomPositions(prev => [...prev, { id: newAtomId, x: centerX, y: centerY, size: autoAtomSize }]);
+             if (setActiveAtomId) setActiveAtomId(newAtomId);
+          }
        }
        setCurrentPath(null);
        currentPathRef.current = null;
