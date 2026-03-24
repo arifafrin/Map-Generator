@@ -264,6 +264,78 @@ export default function Home() {
                   
                 </div>
              </div>
+
+             {/* Moved Atom Controls here to balance UI */}
+             {(selectedStyle === 'network' || selectedStyle === 'pencilnetwork') && (() => {
+               const activeAtom = atomPositions?.find(a => a.id === activeAtomId) || atomPositions?.[0] || { x: 50, y: 50 };
+               const currentElectronCount = activeAtom.electrons ?? electronCount;
+
+               const handleUpdateActiveAtom = (updates) => {
+                  if (setAtomPositions) {
+                      setAtomPositions(prev => prev.map(a => 
+                          a.id === activeAtom.id ? { ...a, ...updates } : a
+                      ));
+                  }
+               };
+               
+               return (
+                 <div className="pt-2 border-t border-white/5 space-y-3 pb-2 animate-fade-in">
+                   <div className="flex items-center justify-between mb-1 border-b border-indigo-500/20 pb-2">
+                     <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-indigo-300">⚛️</span>
+                        <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Atom Overlay</p>
+                     </div>
+                     <button 
+                       onClick={() => {
+                         const newState = !showAtom;
+                         setShowAtom(newState);
+                         // Seed a default atom at center if enabling with empty list
+                         if (newState && atomPositions && atomPositions.length === 0) {
+                           const seedId = `atom-${Date.now()}`;
+                           setAtomPositions([{ id: seedId, x: 50, y: 50 }]);
+                           setActiveAtomId(seedId);
+                         }
+                       }}
+                       className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showAtom ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10 hover:bg-white/20'}`}
+                     >
+                       <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform duration-300 ${showAtom ? 'translate-x-5' : 'translate-x-0'}`} />
+                     </button>
+                   </div>
+
+                   {/* Active atom status indicator */}
+                   {atomPositions && atomPositions.length > 1 && (
+                     <div className="flex items-center justify-between py-1.5 px-2 mb-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+                       <p className="text-[10px] text-indigo-300 font-semibold">Editing Atom</p>
+                       <span className="text-[10px] font-mono text-white bg-indigo-500/30 px-2 py-0.5 rounded">
+                         {(atomPositions?.findIndex(a => a.id === activeAtomId) ?? 0) + 1} / {atomPositions?.length}
+                       </span>
+                     </div>
+                   )}
+                   
+                   <div className={`space-y-4 transition-all duration-300 ${!showAtom ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
+                     {/* Base Color Picker */}
+                     <div className="flex justify-between items-center bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-lg">
+                        <p className="text-[11px] text-indigo-200 font-semibold tracking-wide">Base Color</p>
+                        <input
+                          type="color"
+                          value={atomColor}
+                          onChange={(e) => setAtomColor && setAtomColor(e.target.value)}
+                          className="w-6 h-6 rounded cursor-pointer border-none bg-transparent p-0 appearance-none"
+                        />
+                     </div>
+                     
+                     <div>
+                       <div className="flex justify-between items-center mb-1.5">
+                         <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Orbit Rings</p>
+                         <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded">{currentElectronCount}</span>
+                       </div>
+                       <input type="range" min="0" max="48" step="1" value={currentElectronCount} onChange={(e) => handleUpdateActiveAtom({ electrons: parseInt(e.target.value) })} className="w-full h-1.5 bg-indigo-950 rounded-lg appearance-none cursor-pointer border-none accent-indigo-400" />
+                     </div>
+                   </div>
+                 </div>
+               );
+             })()}
+
           </div>
           
           {/* Export System */}
