@@ -362,22 +362,26 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
     const src = img.getAttribute('href') || img.getAttribute('xlink:href');
     if (src && src.startsWith('http')) {
       try {
-        const response = await fetch(src);
+        // Use AbortController to enforce a hard 3-second timeout per image
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), 3000);
+        const response = await fetch(src, { signal: controller.signal, mode: 'cors' });
+        clearTimeout(fetchTimeout);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
         const blob = await response.blob();
-        const base64data = await new Promise((resolve) => {
+        const base64data = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('FileReader failed'));
           reader.readAsDataURL(blob);
         });
         
-        // Critical for Illustrator / Old Software compatibility
-        // We MUST use raw 'xlink:href' formatting to avoid DOM duplicate namespace crashes!
         img.removeAttribute('href');
         img.setAttribute('xlink:href', base64data);
       } catch (err) {
-        console.warn("Failed to embed image as base64:", src);
-        // If flagcdn blocks us via CORS or timeout, Adobe Illustrator will explicitly crash 
-        // reading the external 'href'. We must mathematically wipe the image entirely to save the export pipeline!
+        console.warn("Skipping image (CORS/timeout):", src);
         img.remove();
       }
     }
@@ -510,6 +514,18 @@ return new Promise((resolve, reject) => {
   if (clone.style.background === 'transparent' || clone.style.background === '') {
      clone.style.background = 'transparent';
   }
+  
+  // CRITICAL: Remove ALL external <image> elements before Canvas serialization.
+  // Cross-origin images (e.g. flagcdn.com) taint the HTML Canvas, which causes
+  // canvas.toBlob() to silently NEVER fire its callback — this is the root cause
+  // of the infinite "PACKAGING..." hang.
+  const externalImages = Array.from(clone.querySelectorAll('image'));
+  externalImages.forEach(img => {
+    const src = img.getAttribute('href') || img.getAttribute('xlink:href') || '';
+    if (src.startsWith('http')) {
+      img.remove();
+    }
+  });
   
   const svgData = new XMLSerializer().serializeToString(clone);
   const img = new Image();
