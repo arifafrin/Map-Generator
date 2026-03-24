@@ -224,7 +224,7 @@ export const mapStyles = {
     regionColors: aiColorThemes.vibrant,
   },
   pencilnetwork: {
-    id: 'pencilnetwork', name: 'Pencil Network', icon: '✍️',
+    id: 'pencilnetwork', name: 'Halftone Draw', icon: '✍️',
     background: '#040b16',
     stroke: 'none', strokeWidth: 0,
     fontColor: '#ffffff', fontFamily: 'Courier New, monospace',
@@ -232,6 +232,16 @@ export const mapStyles = {
     isNetwork: true,
     isPencil: true,
     regionColors: ['#ff4500', '#ff6a00', '#ff8c00', '#ffa500', '#ff7f50', '#ffb380'],
+  },
+  pencilradial: {
+    id: 'pencilradial', name: 'Radial Halftone', icon: '🎯',
+    background: '#040b16',
+    stroke: 'none', strokeWidth: 0,
+    fontColor: '#ffffff', fontFamily: 'Courier New, monospace',
+    isRadialDotted: true,
+    isNetwork: true,
+    isPencil: true,
+    regionColors: ['#00e5ff', '#0077ff', '#6600ff'],
   },
 };
 

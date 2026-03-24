@@ -250,7 +250,7 @@ export default function Home() {
                        selectedStyle={selectedStyle}
                        onSelect={setSelectedStyle}
                        label="Drawing Style"
-                       stylesList={[mapStyles.pencilbasic, mapStyles.pencilmesh, mapStyles.pencilnetwork]}
+                       stylesList={[mapStyles.pencilbasic, mapStyles.pencilmesh, mapStyles.pencilnetwork, mapStyles.pencilradial]}
                      />
                      <button
                         onClick={() => setClearDrawingsTrigger(prev => prev + 1)}

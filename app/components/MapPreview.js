@@ -297,26 +297,26 @@ export default memo(function MapPreview({
           if (screenDistSq < 2500) {
              isClosed = true;
           }
-          setDrawnPaths(prev => [...prev, { points: finalPath, isClosed }]);
+          // Compute bounding box for this drawn shape
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          finalPath.forEach(pt => {
+            if (pt.x < minX) minX = pt.x;
+            if (pt.y < minY) minY = pt.y;
+            if (pt.x > maxX) maxX = pt.x;
+            if (pt.y > maxY) maxY = pt.y;
+          });
+          
+          const centerX = ((minX + maxX) / 2 / dimensions.width) * 100;
+          const centerY = ((minY + maxY) / 2 / dimensions.height) * 100;
+          const shapeW = maxX - minX;
+          const shapeH = maxY - minY;
+          
+          const bounds = { minX, minY, maxX, maxY, centerX, centerY, shapeW, shapeH };
+
+          setDrawnPaths(prev => [...prev, { points: finalPath, isClosed, bounds }]);
           
           // AUTO-ATOM SPAWNING: Place an atom at the center of the drawn shape
           if (showAtom && setAtomPositions) {
-             // Compute bounding box of the drawn shape
-             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-             finalPath.forEach(pt => {
-               if (pt.x < minX) minX = pt.x;
-               if (pt.y < minY) minY = pt.y;
-               if (pt.x > maxX) maxX = pt.x;
-               if (pt.y > maxY) maxY = pt.y;
-             });
-             
-             // Center of bounding box in percent coordinates
-             const centerX = ((minX + maxX) / 2 / dimensions.width) * 100;
-             const centerY = ((minY + maxY) / 2 / dimensions.height) * 100;
-             
-             // Shape size in viewport units, derive atom size to be MUCH smaller than the shape (~25% scale)
-             const shapeW = maxX - minX;
-             const shapeH = maxY - minY;
              const shapeSizePercent = (Math.min(shapeW, shapeH) / Math.min(dimensions.width, dimensions.height)) * 100;
              
              // Scale it down significantly so it feels like a small core
@@ -532,7 +532,7 @@ export default memo(function MapPreview({
           <stop offset="100%" stopColor="#ffffff" stopOpacity="0.2" />
         </linearGradient>
       ))}
-      {styleConfig.isDotted && allPaths.map((p) => {
+      {styleConfig.isDotted && !styleConfig.isRadialDotted && allPaths.map((p) => {
         const spacing = dotSize * 3;
         return (
           <pattern key={`dot-${p.id}`} id={`dot-${p.id}`} x="0" y="0" width={spacing} height={spacing} patternUnits="userSpaceOnUse">
@@ -541,6 +541,13 @@ export default memo(function MapPreview({
           </pattern>
         );
       })}
+      
+      {/* Clip Paths strictly required for masking Radial Halftone distinct circle grids constraints */}
+      {styleConfig.isRadialDotted && allPaths.filter(p => !!p.d).map(p => (
+        <clipPath key={`clip-${p.id}`} id={`clip-${p.id}`}>
+           <path d={p.d} />
+        </clipPath>
+      ))}
       
       {/* Universal ClipPath for all flag instances inside pins */}
       <clipPath id="global-flag-clip">
@@ -558,16 +565,43 @@ export default memo(function MapPreview({
     
     let displayFill = path.fillColor;
     if (styleConfig.isGradientFill) displayFill = `url(#grad-${path.id})`;
-    if (styleConfig.isDotted) displayFill = `url(#dot-${path.id})`;
+    if (styleConfig.isDotted && !styleConfig.isRadialDotted) displayFill = `url(#dot-${path.id})`;
     if (isSelected && !styleConfig.isOutlineOnly && !isDrawn) displayFill = '#ffd700';
+    if (styleConfig.isRadialDotted) displayFill = 'transparent'; // Mask handles visual fill
     
     const displayStroke = isHovered ? '#ffffff' : styleConfig.stroke;
     const filterUrl = styleConfig.glow && (isHovered || isSelected) 
       ? 'url(#neonGlow)' 
       : styleConfig.isSketch ? 'url(#sketchEffect)' : 'none';
 
+    // RENDER RADIAL HALFTONE GRID
+    let radialDots = null;
+    if (styleConfig.isRadialDotted && path.bounds) {
+       const b = path.bounds;
+       const cx = (b.minX + b.maxX) / 2;
+       const cy = (b.minY + b.maxY) / 2;
+       const maxDist = Math.hypot(b.maxX - cx, b.maxY - cy);
+       const spacing = dotSize * 2.8;
+       const dots = [];
+       
+       for (let x = b.minX; x <= b.maxX; x += spacing) {
+         for (let y = b.minY; y <= b.maxY; y += spacing) {
+            const dist = Math.hypot(x - cx, y - cy);
+            if (dist > maxDist) continue;
+            // Linear falloff from center outward
+            const ratio = Math.max(0, 1 - (dist / maxDist));
+            const r = (dotSize * 0.8) * ratio;
+            if (r > 0.4) {
+               dots.push(<circle key={`rdot-${x}-${y}`} cx={x} cy={y} r={r} fill={path.fillColor} />);
+            }
+         }
+       }
+       radialDots = <g clipPath={`url(#clip-${path.id})`}>{dots}</g>;
+    }
+
     return (
-      <path
+      <g key={`group-${path.index}`}>
+        <path
         key={`path-${path.index}`}
         id={path.id}
         d={path.d}
@@ -586,8 +620,10 @@ export default memo(function MapPreview({
         onMouseLeave={!isDrawn ? () => setHoveredRegion(null) : undefined}
         onClick={!isDrawn ? () => onRegionSelect && onRegionSelect(path.index) : undefined}
       >
-        <title>{path.name}</title>
-      </path>
+          <title>{path.name}</title>
+        </path>
+        {radialDots}
+      </g>
     );
   };
 
