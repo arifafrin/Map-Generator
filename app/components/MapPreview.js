@@ -313,11 +313,13 @@ export default memo(function MapPreview({
              const centerX = ((minX + maxX) / 2 / dimensions.width) * 100;
              const centerY = ((minY + maxY) / 2 / dimensions.height) * 100;
              
-             // Shape size in viewport units, derive atom size as ~60% of the smaller dimension
+             // Shape size in viewport units, derive atom size to be MUCH smaller than the shape (~25% scale)
              const shapeW = maxX - minX;
              const shapeH = maxY - minY;
              const shapeSizePercent = (Math.min(shapeW, shapeH) / Math.min(dimensions.width, dimensions.height)) * 100;
-             const autoAtomSize = Math.max(8, Math.min(80, shapeSizePercent * 0.6));
+             
+             // Scale it down significantly so it feels like a small core
+             const autoAtomSize = Math.max(4, Math.min(60, shapeSizePercent * 0.25));
              
              const newAtomId = `atom-${Date.now()}`;
              setAtomPositions(prev => [...prev, { id: newAtomId, x: centerX, y: centerY, size: autoAtomSize }]);
