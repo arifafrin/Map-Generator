@@ -60,6 +60,14 @@ export default memo(function MapPreview({
   // Refs to avoid stale closures in pointer handlers
   const isDrawingShapeRef = useRef(false);
   const currentPathRef = useRef(null);
+  
+  const activeAtomIdRef = useRef(activeAtomId);
+  const atomSizeRef = useRef(atomSize);
+  const setAtomPositionsRef = useRef(setAtomPositions);
+  
+  useEffect(() => { activeAtomIdRef.current = activeAtomId; }, [activeAtomId]);
+  useEffect(() => { atomSizeRef.current = atomSize; }, [atomSize]);
+  useEffect(() => { setAtomPositionsRef.current = setAtomPositions; }, [setAtomPositions]);
 
   // DRAG ATOM STATE
   const [draggingAtomId, setDraggingAtomId] = useState(null);
@@ -107,6 +115,21 @@ export default memo(function MapPreview({
     if (!svgEl) return;
     const handleWheel = (e) => {
       e.preventDefault();
+
+      // ATOM SCALING OVERRIDE (Alt + Scroll)
+      if (e.altKey && activeAtomIdRef.current && setAtomPositionsRef.current) {
+         const scaleDelta = e.deltaY > 0 ? -4 : 4;
+         setAtomPositionsRef.current(prev => prev.map(a => {
+            if (a.id === activeAtomIdRef.current) {
+                const currentSize = a.size ?? atomSizeRef.current;
+                const newSize = Math.max(5, Math.min(250, currentSize + scaleDelta));
+                return { ...a, size: newSize };
+            }
+            return a;
+         }));
+         return; // Bypass normal map zoom
+      }
+
       const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
       setTransform(prev => {
         const svgRect = svgEl.getBoundingClientRect();

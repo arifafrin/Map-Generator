@@ -46,9 +46,11 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
     return domSvg || null;
   };
 
+  const isValidToExport = geoData || selectedStyle?.includes('pencil');
+
   const validateMapStatus = () => {
     const svgEl = getExportableSvg();
-    if (!svgEl || !geoData || geoData.features.length === 0) {
+    if (!svgEl || !isValidToExport) {
       alert("Map data is still loading or incomplete. Please wait for the map to fully render before exporting.");
       return null;
     }
@@ -193,7 +195,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
     <div className="relative" ref={dropdownRef}>
       <div className="flex flex-col gap-2 relative z-50">
         
-        {isOpen && geoData && (
+        {isOpen && isValidToExport && (
           <div className="absolute bottom-full mb-3 left-0 w-full p-2 bg-[#0d0d14] border border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] rounded-xl flex flex-col gap-1 z-50 animate-fade-in origin-bottom">
             <button onClick={() => { setIsOpen(false); handleSvgExport(); }} className="py-3 px-4 rounded-lg bg-white/5 hover:bg-purple-500/20 text-left text-[11px] font-bold uppercase tracking-wider text-gray-200 transition-colors flex items-center gap-3">
               <span className="text-purple-400 text-lg">✒️</span> Vector Format (SVG)
@@ -212,9 +214,9 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
              initializeMetadata();
              setIsOpen(!isOpen);
           }}
-          disabled={!geoData || isExporting}
+          disabled={!isValidToExport || isExporting}
           className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
-            !geoData || isExporting
+            (!isValidToExport || isExporting)
               ? 'bg-gray-800 text-gray-500 cursor-not-allowed shadow-none'
               : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.25)] hover:shadow-[0_0_40px_rgba(168,85,247,0.6)] hover:-translate-y-1'
           }`}
@@ -236,9 +238,9 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
         
         <button
           onClick={handleBulkExport}
-          disabled={!geoData || isExporting}
+          disabled={!isValidToExport || isExporting}
           className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all border flex items-center justify-center gap-2 shadow-lg ${
-            !geoData || isExporting
+            (!isValidToExport || isExporting)
               ? 'bg-transparent border-gray-800 text-gray-700 cursor-not-allowed hidden'
               : 'bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-orange-500/30 text-orange-400 hover:from-orange-500/20 hover:to-pink-500/20 hover:border-orange-500/60 shadow-[0_0_15px_rgba(249,115,22,0.1)] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] hover:-translate-y-0.5'
           }`}
