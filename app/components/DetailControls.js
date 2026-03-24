@@ -11,6 +11,7 @@ export default function DetailControls({
   dotSize, setDotSize,
   showAtom = true, setShowAtom,
   activeAtomId, setActiveAtomId,
+  atomSize, setAtomSize,
   atomPositions, setAtomPositions,
   electronCount, setElectronCount,
   atomColor, setAtomColor,
