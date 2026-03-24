@@ -522,16 +522,21 @@ return new Promise((resolve, reject) => {
   }, 5000);
 
   img.onload = () => {
-    clearTimeout(timeoutId);
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
-    ctx.scale(scale, scale);
-    ctx.drawImage(img, 0, 0);
-    URL.revokeObjectURL(url);
+    try {
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
 
-    canvas.toBlob((blob) => {
-      resolve(blob);
-    }, 'image/png', 1.0);
+      canvas.toBlob((blob) => {
+        clearTimeout(timeoutId);
+        resolve(blob);
+      }, 'image/png', 1.0);
+    } catch(e) {
+      clearTimeout(timeoutId);
+      reject(e);
+    }
   };
 
   img.onerror = (err) => {
