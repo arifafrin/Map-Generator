@@ -171,8 +171,8 @@ export default function DetailControls({
           />
         </div>
 
-        {/* Dot Size Slider — visible when Dotted or Neural Mesh style is selected */}
-        {(selectedStyle === 'dotted' || selectedStyle === 'dotshape' || selectedStyle === 'neuralmesh') && (
+        {/* Dot Size Slider — visible when Dotted or Neural Mesh or Halftone Draw style is selected */}
+        {(selectedStyle === 'dotted' || selectedStyle === 'dotshape' || selectedStyle === 'neuralmesh' || selectedStyle === 'pencilnetwork' || selectedStyle === 'pencilradial') && (
           <div className="pt-2 border-t border-white/5 mt-2">
             <div className="flex justify-between items-center mb-2">
               <p className="text-[11px] font-semibold text-gray-300 tracking-wide">Dot Radius Matrix</p>
