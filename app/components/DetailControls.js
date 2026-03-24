@@ -195,18 +195,18 @@ export default function DetailControls({
       )}
 
       {/* Location Pin Controls */}
-      <div className={`transition-all duration-500 border border-white/5 rounded-xl p-4 shadow-sm backdrop-blur-md ${pinEnabled ? 'bg-red-500/5 border-red-500/20' : 'bg-white/[0.03]'}`}>
+      <div className={`transition-all duration-500 border border-white/5 rounded-xl p-4 shadow-sm backdrop-blur-md ${pinEnabled ? 'bg-[#1877F2]/5 border-[#1877F2]/20' : 'bg-white/[0.03]'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm">📍</span>
             <div>
-              <span className={`text-[11px] font-bold block tracking-wide ${pinEnabled ? 'text-red-400' : 'text-gray-300'}`}>Show Map Pins</span>
+              <span className={`text-[11px] font-bold block tracking-wide ${pinEnabled ? 'text-blue-400' : 'text-gray-300'}`}>Show Map Pins</span>
               <span className="text-[9px] text-gray-500 block mt-0.5">Display location markers on the map</span>
             </div>
           </div>
           <button 
             onClick={() => setPinEnabled(!pinEnabled)}
-            className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${pinEnabled ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/10 hover:bg-white/20'}`}
+            className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${pinEnabled ? 'bg-[#1877F2]' : 'bg-white/10 hover:bg-white/20'}`}
           >
             <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform duration-300 ${pinEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
