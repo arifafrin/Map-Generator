@@ -11,9 +11,9 @@ export default function DetailControls({
   dotSize, setDotSize,
   showAtom = true, setShowAtom,
   activeAtomId, setActiveAtomId,
-  atomSize, setAtomSize,
   atomPositions, setAtomPositions,
   electronCount, setElectronCount,
+  atomColor, setAtomColor,
   pinEnabled, setPinEnabled,
   pinSize, setPinSize,
   pinColor, setPinColor,
@@ -351,6 +351,17 @@ export default function DetailControls({
           )}
           
           <div className={`space-y-4 transition-all duration-300 ${!showAtom ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
+            {/* Base Color Picker */}
+            <div className="flex justify-between items-center bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-lg">
+               <p className="text-[11px] text-indigo-200 font-semibold tracking-wide">Base Color</p>
+               <input
+                 type="color"
+                 value={atomColor}
+                 onChange={(e) => setAtomColor && setAtomColor(e.target.value)}
+                 className="w-6 h-6 rounded cursor-pointer border-none bg-transparent p-0 appearance-none"
+               />
+            </div>
+            
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Electron Particles</p>

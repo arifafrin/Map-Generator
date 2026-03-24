@@ -28,6 +28,7 @@ export default memo(function MapPreview({
   setAtomPositions,
   atomSize = 32,
   electronCount = 12,
+  atomColor = '#ff8c00',
   pinEnabled = false,
   pinSize = 36,
   pinColor = '#ef4444',
@@ -720,10 +721,11 @@ export default memo(function MapPreview({
               {atomPositions.map((atom) => {
                 const cx = dimensions.width * (atom.x / 100);
                 const cy = dimensions.height * (atom.y / 100);
-                const color = colors[0] || '#ff4500';
-                const color2 = colors[1] || colors[0] || '#ff6a00';
-                const color3 = colors[2] || colors[0] || '#ff8c00';
-                const orbitColors = [color, color2, color3];
+                const baseAtomColor = atomColor || '#ff8c00';
+                
+                // Orbit colors logic — rely primarily on atomColor, adding slight opacity layers if it's single color
+                const orbitColors = [baseAtomColor, baseAtomColor, baseAtomColor];
+                
                 const atomR = Math.min(dimensions.width, dimensions.height) * ((atom.size ?? atomSize) / 100);
                 const atomElectrons = atom.electrons ?? electronCount;
                 const isActive = atom.id === activeAtomId;
@@ -745,8 +747,8 @@ export default memo(function MapPreview({
                       />
                     ))}
                     {/* Nucleus — solid circle in center */}
-                    <circle cx={cx} cy={cy} r={atomR * 0.07} fill={color} opacity="0.95" />
-                    <circle cx={cx} cy={cy} r={atomR * 0.12} fill="none" stroke={color} strokeWidth="1" opacity="0.4" />
+                    <circle cx={cx} cy={cy} r={atomR * 0.07} fill={baseAtomColor} opacity="0.95" />
+                    <circle cx={cx} cy={cy} r={atomR * 0.12} fill="none" stroke={baseAtomColor} strokeWidth="1" opacity="0.4" />
                     
                     {/* Selection ring — dashed halo around currently active atom */}
                     {isActive && (

@@ -41,6 +41,7 @@ export default function Home() {
   const [activeAtomId, setActiveAtomId] = useState(null);
   const [electronCount, setElectronCount] = useState(12);
   const [atomSize, setAtomSize] = useState(32); // percentage 10-100
+  const [atomColor, setAtomColor] = useState('#ff8c00'); // Independent atom color
 
   // App State
   const [geoData, setGeoData] = useState(null);
@@ -330,6 +331,7 @@ export default function Home() {
                atomPositions={atomPositions} setAtomPositions={setAtomPositions}
                electronCount={electronCount} setElectronCount={setElectronCount}
                atomSize={atomSize} setAtomSize={setAtomSize}
+               atomColor={atomColor} setAtomColor={setAtomColor}
                pinEnabled={pinEnabled} setPinEnabled={setPinEnabled}
                pinSize={pinSize} setPinSize={setPinSize}
                selectedStyle={selectedStyle}
@@ -409,6 +411,7 @@ export default function Home() {
                   atomPositions={atomPositions} setAtomPositions={setAtomPositions}
                   electronCount={electronCount}
                   atomSize={atomSize}
+                  atomColor={atomColor}
                   pinEnabled={pinEnabled}
                   pinSize={pinSize}
                   pinColor={pinColor}
