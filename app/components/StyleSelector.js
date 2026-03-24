@@ -47,7 +47,7 @@ export default function StyleSelector({ selectedStyle, onSelect, label = "Map St
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-[105%] md:w-[320px] left-0 mt-2 p-3 rounded-xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-emerald-500/10 max-h-[500px] overflow-y-auto custom-scrollbar">
+        <div className="absolute z-50 w-[110%] md:w-[360px] left-0 mt-2 p-4 rounded-xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-emerald-500/10 max-h-[550px] overflow-y-auto custom-scrollbar">
           <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               Select Map Style
@@ -56,29 +56,29 @@ export default function StyleSelector({ selectedStyle, onSelect, label = "Map St
               {styles.length} Styles
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
         {styles.map(style => {
           const isSelected = selectedStyle === style.id;
           return (
             <button
               key={style.id}
               onClick={() => onSelect(style.id)}
-              className={`flex flex-col items-start gap-1 p-3 rounded-xl border transition-all duration-300 text-left group relative overflow-hidden ${
+              className={`flex flex-col items-start gap-1.5 p-4 rounded-xl border transition-all duration-300 text-left group relative overflow-hidden ${
                 isSelected
                   ? 'bg-purple-500/20 border-purple-500/50 shadow-lg shadow-purple-500/10'
                   : 'bg-white/5 border-white/10 hover:border-purple-500/30 hover:bg-white/8'
               }`}
             >
-              <div className="flex items-center gap-2 w-full">
-                <span className="text-lg">{style.icon}</span>
-                <span className={`text-xs font-semibold ${isSelected ? 'text-purple-300' : 'text-gray-200'}`}>
+              <div className="flex items-center gap-2.5 w-full">
+                <span className="text-xl">{style.icon}</span>
+                <span className={`text-[13px] font-semibold ${isSelected ? 'text-purple-300' : 'text-gray-200'}`}>
                   {style.name}
                 </span>
               </div>
               
               {/* Preset preview pill based on style background */}
               <div 
-                className="w-full h-8 mt-2 rounded-md border border-white/10 shadow-sm overflow-hidden flex"
+                className="w-full h-10 mt-2 rounded-lg border border-white/10 shadow-sm overflow-hidden flex"
                 style={{ background: style.background !== 'transparent' ? style.background : '#eee' }}
               >
                 {style.regionColors.slice(0, 3).map((col, i) => (
