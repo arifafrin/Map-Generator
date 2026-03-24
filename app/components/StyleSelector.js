@@ -47,7 +47,7 @@ export default function StyleSelector({ selectedStyle, onSelect, label = "Map St
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-[115%] md:w-[420px] left-0 mt-2 p-4 rounded-xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-emerald-500/10 max-h-[550px] overflow-y-auto custom-scrollbar">
+        <div className="absolute z-50 w-full left-0 mt-2 p-3 rounded-xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-emerald-500/10 max-h-[550px] overflow-y-auto custom-scrollbar">
           <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               Select Map Style
