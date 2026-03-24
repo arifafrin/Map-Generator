@@ -89,8 +89,8 @@ export default function DetailControls({
           {/* PREMIUM STOCK AUTOMATION TOGGLES */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)] transition-all hover:bg-emerald-500/10">
             <div>
-               <span className="text-[11px] font-bold text-emerald-400 block tracking-wide">Adobe Stock Compatibility</span>
-               <span className="text-[9px] text-emerald-500/60 block mt-0.5">Enforces safe margins & 1px pristine borders</span>
+               <span className="text-[11px] font-bold text-emerald-400 block tracking-wide">Clean Export Mode</span>
+               <span className="text-[9px] text-emerald-500/60 block mt-0.5">Prevents edges from getting cut off during export</span>
             </div>
             <button 
               onClick={() => {
@@ -106,8 +106,8 @@ export default function DetailControls({
 
           <div className="flex items-center justify-between py-1 group">
              <div>
-               <span className="text-[11px] font-semibold text-gray-300 block group-hover:text-white transition-colors">Include Small Islands</span>
-               <span className="text-[9px] text-gray-500">Retains max geographical detail</span>
+               <span className="text-[11px] font-semibold text-gray-300 block group-hover:text-white transition-colors">Show Small Islands</span>
+               <span className="text-[9px] text-gray-500">Keep tiny shapes on the map</span>
              </div>
             <button 
               onClick={() => setIncludeIslands(!includeIslands)}
@@ -118,7 +118,7 @@ export default function DetailControls({
           </div>
 
           <div className="flex items-center justify-between py-1 group">
-            <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show Map Title</span>
+            <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show Country Name</span>
             <button 
               onClick={() => setShowTitle(!showTitle)}
               className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showTitle ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/10'}`}
@@ -128,7 +128,7 @@ export default function DetailControls({
           </div>
 
           <div className="flex items-center justify-between py-1 group">
-            <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show Region Labels</span>
+            <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show State/Region Names</span>
             <button 
               onClick={() => setShowLabels(!showLabels)}
               className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showLabels ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/10'}`}
@@ -138,7 +138,7 @@ export default function DetailControls({
           </div>
 
           <div className="flex items-center justify-between py-1 mt-2 pt-2 border-t border-white/5 group">
-            <span className="text-[11px] font-semibold text-gray-400 group-hover:text-red-300 transition-colors">🔍 Developer Debug Mode</span>
+            <span className="text-[11px] font-semibold text-gray-400 group-hover:text-red-300 transition-colors">🔍 Show Bounding Boxes</span>
             <button 
               onClick={() => setDebugMode(!debugMode)}
               className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${debugMode ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/10'}`}
@@ -154,12 +154,12 @@ export default function DetailControls({
       <div className="bg-gradient-to-b from-white/[0.05] to-transparent border border-white/10 border-t-white/20 rounded-xl p-4 shadow-xl backdrop-blur-xl relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
         <h3 className="text-[11px] uppercase text-gray-400 font-bold mb-4 flex items-center gap-2">
-          <span className="text-sm">📐</span> Geometry Scaling
+          <span className="text-sm">📐</span> Map Detail Settings
         </h3>
         
         <div className="mb-4">
           <div className="flex justify-between items-center mb-2">
-            <p className="text-[11px] font-semibold text-gray-300 tracking-wide">Stroke Border Width</p>
+            <p className="text-[11px] font-semibold text-gray-300 tracking-wide">Border Line Thickness</p>
             <span className="text-[10px] font-mono text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded">{borderWidth.toFixed(1)}px</span>
           </div>
           <input 
@@ -175,7 +175,7 @@ export default function DetailControls({
         {(selectedStyle === 'dotted' || selectedStyle === 'dotshape' || selectedStyle === 'neuralmesh' || selectedStyle === 'pencilnetwork' || selectedStyle === 'pencilradial') && (
           <div className="pt-2 border-t border-white/5 mt-2">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-[11px] font-semibold text-gray-300 tracking-wide">Dot Radius Matrix</p>
+              <p className="text-[11px] font-semibold text-gray-300 tracking-wide">Halftone Dot Size</p>
               <span className="text-[10px] font-mono text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded">{dotSize.toFixed(1)}px</span>
             </div>
             <input 
@@ -187,7 +187,7 @@ export default function DetailControls({
             />
             <div className="flex justify-between text-[9px] text-gray-500 mt-1.5 font-medium uppercase">
               <span>Fine</span>
-              <span>Ultra</span>
+              <span>Large</span>
             </div>
           </div>
         )}
@@ -200,8 +200,8 @@ export default function DetailControls({
           <div className="flex items-center gap-2">
             <span className="text-sm">📍</span>
             <div>
-              <span className={`text-[11px] font-bold block tracking-wide ${pinEnabled ? 'text-red-400' : 'text-gray-300'}`}>Local Map Pins</span>
-              <span className="text-[9px] text-gray-500 block mt-0.5">Automated flag embedding</span>
+              <span className={`text-[11px] font-bold block tracking-wide ${pinEnabled ? 'text-red-400' : 'text-gray-300'}`}>Show Map Pins</span>
+              <span className="text-[9px] text-gray-500 block mt-0.5">Display location markers on the map</span>
             </div>
           </div>
           <button 
@@ -217,7 +217,7 @@ export default function DetailControls({
             {/* Pin Size */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <p className="text-[11px] font-semibold text-gray-300 tracking-wide">Pin Physical Scale</p>
+                <p className="text-[11px] font-semibold text-gray-300 tracking-wide">Pin Size</p>
                 <span className="text-[10px] font-mono text-red-300 bg-red-500/10 px-1.5 py-0.5 rounded">{pinSize}px</span>
               </div>
               <input 
@@ -225,9 +225,9 @@ export default function DetailControls({
                 value={pinSize}
                 onChange={(e) => setPinSize(parseInt(e.target.value))}
                 className="w-full h-1.5 bg-black/40 rounded-lg appearance-none cursor-pointer border border-white/5 accent-red-500 outline-none hover:bg-black/60 transition-colors"
-                title="Size determines collision culling density!"
+                title="Adjust the size of the location markers"
               />
-              <p className="text-[9px] text-gray-500 mt-1.5 text-center italic">Larger sizes naturally reduce density overlap</p>
+              <p className="text-[9px] text-gray-500 mt-1.5 text-center italic">Larger pins mean fewer pins will fit overall</p>
             </div>
           </div>
         )}
@@ -237,29 +237,29 @@ export default function DetailControls({
       {selectedStyle === 'neuralmesh' && (
          <div className="mt-2 bg-[#0f0b1a] border border-indigo-500/20 rounded-xl p-5 shadow-xl backdrop-blur-xl animate-fade-in">
             <h3 className="text-[12px] uppercase text-indigo-400 font-black tracking-widest mb-5 flex items-center gap-2.5">
-              <span className="text-sm">🕸️</span> Neural Studio
+              <span className="text-sm">🕸️</span> Network Settings
             </h3>
             
             {/* Node System */}
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3.5 border-b border-indigo-500/20 pb-1.5">
                  <span className="text-[10px] text-indigo-300">⬤</span>
-                 <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Node System</p>
+                 <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Map Style Nodes</p>
               </div>
               <div className="space-y-5 px-1">
                 {/* Spacing Slider */}
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
-                    <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Node Spacing Gap</p>
+                    <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Point Density</p>
                     <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded">{atomSize}</span>
                   </div>
                   <input type="range" min="10" max="150" step="1" value={atomSize} onChange={(e) => setAtomSize(parseInt(e.target.value))} className="w-full h-1.5 bg-indigo-950 rounded-lg appearance-none cursor-pointer border-none accent-indigo-400" />
-                  <p className="text-[9px] text-gray-500 mt-1.5 leading-tight">Controls population density across the map.</p>
+                  <p className="text-[9px] text-gray-500 mt-1.5 leading-tight">Controls how closely dots are packed together.</p>
                 </div>
                 {/* Size Slider */}
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
-                    <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Node Physical Radius</p>
+                    <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Dot Size</p>
                     <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded">{dotSize.toFixed(1)}x</span>
                   </div>
                   <input type="range" min="1" max="8" step="0.5" value={dotSize} onChange={(e) => setDotSize(parseFloat(e.target.value))} className="w-full h-1.5 bg-indigo-950 rounded-lg appearance-none cursor-pointer border-none accent-indigo-400" />
@@ -278,20 +278,20 @@ export default function DetailControls({
                 {/* Reach Slider */}
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
-                    <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Max Connection Reach</p>
+                    <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Line Length</p>
                     <span className="text-[10px] font-mono text-pink-300 bg-pink-500/10 px-1.5 py-0.5 rounded">{electronCount}</span>
                   </div>
                   <input type="range" min="0" max="40" step="1" value={electronCount} onChange={(e) => setElectronCount(parseInt(e.target.value))} className="w-full h-1.5 bg-pink-950 rounded-lg appearance-none cursor-pointer border-none accent-pink-400" />
-                  <p className="text-[9px] text-gray-500 mt-1.5 leading-tight">Allows nodes to cast synaptic webs much further.</p>
+                  <p className="text-[9px] text-gray-500 mt-1.5 leading-tight">How far the connecting lines can reach between dots.</p>
                 </div>
                 {/* Thickness Slider */}
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
-                    <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Synaptic Line Weight</p>
+                    <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Line Thickness</p>
                     <span className="text-[10px] font-mono text-pink-300 bg-pink-500/10 px-1.5 py-0.5 rounded">{borderWidth.toFixed(1)}</span>
                   </div>
                   <input type="range" min="0" max="3" step="0.1" value={borderWidth} onChange={(e) => setBorderWidth(parseFloat(e.target.value))} className="w-full h-1.5 bg-pink-950 rounded-lg appearance-none cursor-pointer border-none accent-pink-400" />
-                  <p className="text-[9px] text-gray-500 mt-1.5 leading-tight">Increases baseline trunk thickness of node links.</p>
+                  <p className="text-[9px] text-gray-500 mt-1.5 leading-tight">Adjust how thick the connecting lines appear.</p>
                 </div>
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function DetailControls({
                     <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded">{borderWidth === 0 ? 'HIDDEN' : borderWidth.toFixed(1)}</span>
                   </div>
                   <input type="range" min="0" max="3" step="0.1" value={borderWidth} onChange={(e) => setBorderWidth(parseFloat(e.target.value))} className="w-full h-1.5 bg-emerald-950 rounded-lg appearance-none cursor-pointer border-none accent-emerald-400" />
-                  <p className="text-[9px] text-gray-500 mt-1.5 leading-tight">Drag to 0 to completely hide territorial shapes, revealing a pure floating mesh. Color inherits standard palette.</p>
+                  <p className="text-[9px] text-gray-500 mt-1.5 leading-tight">Set to 0 to hide country borders and show only the dot pattern.</p>
                 </div>
               </div>
             </div>
@@ -322,7 +322,7 @@ export default function DetailControls({
           <div className="flex items-center justify-between mb-1 border-b border-indigo-500/20 pb-2">
             <div className="flex items-center gap-2">
                <span className="text-[10px] text-indigo-300">⚛️</span>
-               <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Atom Generator</p>
+               <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Atom Overlay</p>
             </div>
             <button 
               onClick={() => {
@@ -365,7 +365,7 @@ export default function DetailControls({
             
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Electron Particles</p>
+                <p className="text-[11px] text-gray-200 font-semibold tracking-wide">Orbit Rings</p>
                 <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded">{currentElectronCount}</span>
               </div>
               <input type="range" min="0" max="48" step="1" value={currentElectronCount} onChange={(e) => handleUpdateActiveAtom({ electrons: parseInt(e.target.value) })} className="w-full h-1.5 bg-indigo-950 rounded-lg appearance-none cursor-pointer border-none accent-indigo-400" />

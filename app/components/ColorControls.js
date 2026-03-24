@@ -177,8 +177,8 @@ export default function ColorControls({ selectedCountry, geoData, colors, onColo
         {/* Smart Blend Control */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.05)] transition-all hover:bg-indigo-500/10 group">
           <div>
-             <span className="text-[11px] font-bold text-indigo-400 block tracking-wide">Monochromatic Blend</span>
-             <span className="text-[9px] text-indigo-400/60 block mt-0.5">Generates an elegant 10-shade spectrum</span>
+             <span className="text-[11px] font-bold text-indigo-400 block tracking-wide">Single Color Blend</span>
+             <span className="text-[9px] text-indigo-400/60 block mt-0.5">Pick a color to auto-generate 10 shades</span>
           </div>
           <div className="relative w-9 h-9 rounded-full overflow-hidden border-[3px] border-indigo-400 shadow-md group-hover:scale-105 transition-transform duration-300">
             <input
@@ -196,7 +196,7 @@ export default function ColorControls({ selectedCountry, geoData, colors, onColo
       <div className="bg-gradient-to-b from-white/[0.05] to-transparent border border-white/10 border-t-white/20 rounded-xl p-4 shadow-xl backdrop-blur-xl relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
         <h3 className="text-[11px] uppercase text-gray-400 font-bold mb-3 flex items-center gap-2">
-          <span className="text-sm">🤖</span> AI Generative Themes
+          <span className="text-sm">🧠</span> Ready-Made Color Themes
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {Object.keys(aiColorThemes).map(theme => (
@@ -306,7 +306,7 @@ export default function ColorControls({ selectedCountry, geoData, colors, onColo
              />
            </label>
         </div>
-        <p className="text-[9px] text-gray-600 leading-tight block pt-2">Whatever background is selected will strictly export visually to exactly match the software grid.</p>
+        <p className="text-[9px] text-gray-600 leading-tight block pt-2">Your chosen background will be exactly what appears in the exported file.</p>
       </div>
 
     </div>
