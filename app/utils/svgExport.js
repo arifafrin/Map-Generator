@@ -13,12 +13,15 @@ let cachedFont = null;
 async function loadFont() {
   if (cachedFont) return cachedFont;
   try {
-    cachedFont = await opentype.load('/fonts/Roboto-Regular.ttf');
-  } catch (err) {
-    try {
-      cachedFont = await opentype.load('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf');
-    } catch(e) { console.error("Font load failed.", e); }
-  }
+    cachedFont = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => resolve(null), 3000);
+        opentype.load('/fonts/Roboto-Regular.ttf', (err, font) => {
+            clearTimeout(timeout);
+            if (err) resolve(null);
+            else resolve(font);
+        });
+    });
+  } catch (err) { console.error("Font load skipped"); }
   return cachedFont;
 }
 
@@ -514,7 +517,12 @@ return new Promise((resolve, reject) => {
   const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(svgBlob);
 
+  const timeoutId = setTimeout(() => {
+     reject(new Error("PNG Generation timed out loading SVG data onto Canvas."));
+  }, 5000);
+
   img.onload = () => {
+    clearTimeout(timeoutId);
     canvas.width = img.width * scale;
     canvas.height = img.height * scale;
     ctx.scale(scale, scale);
@@ -526,7 +534,10 @@ return new Promise((resolve, reject) => {
     }, 'image/png', 1.0);
   };
 
-  img.onerror = (err) => reject(err);
+  img.onerror = (err) => {
+      clearTimeout(timeoutId);
+      reject(err);
+  };
   img.src = url;
 });
 }
