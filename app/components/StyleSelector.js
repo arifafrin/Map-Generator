@@ -20,6 +20,7 @@ export default function StyleSelector({ selectedStyle, onSelect, label = "Map St
   }, [dropdownRef]);
 
   const activeStyle = mapStyles[selectedStyle];
+  const isValidStyleForThisDropdown = activeStyle && styles.some(s => s.id === activeStyle.id);
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -32,9 +33,9 @@ export default function StyleSelector({ selectedStyle, onSelect, label = "Map St
         className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/50 transition-all duration-300 text-left group"
       >
         <span className="flex items-center gap-3">
-          <span className="text-xl">{activeStyle ? activeStyle.icon : '🎨'}</span>
+          <span className="text-xl">{isValidStyleForThisDropdown ? activeStyle.icon : '🎨'}</span>
           <span className="text-sm font-medium text-gray-200">
-            {activeStyle ? activeStyle.name : 'Choose Map Style'}
+            {isValidStyleForThisDropdown ? activeStyle.name : (label === 'Map Style' ? 'Map Style' : 'Choose Map Style')}
           </span>
         </span>
         <svg
