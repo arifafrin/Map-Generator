@@ -469,7 +469,8 @@ export default memo(function MapPreview({
              const d = 'M ' + pathObj.points.map(pt => `${parseFloat(pt.x.toFixed(2))},${parseFloat(pt.y.toFixed(2))}`).join(' L ') + (pathObj.isClosed ? ' Z' : '');
              _paths.push({
                  id: `drawn-${i}`, index: 1000 + i, name: 'Drawn Layer',
-                 d, centroid: null, fillColor: customFill
+                 d, centroid: null, fillColor: customFill,
+                 bounds: pathObj.bounds
              });
          });
          // Notice: We omitted the dynamic active `currentPath` mapping here because it's rendered natively on the DOM bypassing React overhead
