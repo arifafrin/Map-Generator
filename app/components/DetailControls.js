@@ -98,7 +98,7 @@ export default function DetailControls({
                 setStockMode(next);
                 if (next) { setDebugMode(false); setBorderWidth(0.5); }
               }}
-              className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${stockMode ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/10 hover:bg-white/20'}`}
+              className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${stockMode ? 'bg-[#1877F2]' : 'bg-white/10 hover:bg-white/20'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform duration-300 ${stockMode ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -111,7 +111,7 @@ export default function DetailControls({
              </div>
             <button 
               onClick={() => setIncludeIslands(!includeIslands)}
-              className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${includeIslands ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/10'}`}
+              className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${includeIslands ? 'bg-[#1877F2]' : 'bg-white/10'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 ${includeIslands ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -121,7 +121,7 @@ export default function DetailControls({
             <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show Country Name</span>
             <button 
               onClick={() => setShowTitle(!showTitle)}
-              className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showTitle ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/10'}`}
+              className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showTitle ? 'bg-[#1877F2]' : 'bg-white/10'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 ${showTitle ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -131,7 +131,7 @@ export default function DetailControls({
             <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show State/Region Names</span>
             <button 
               onClick={() => setShowLabels(!showLabels)}
-              className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showLabels ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/10'}`}
+              className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showLabels ? 'bg-[#1877F2]' : 'bg-white/10'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 ${showLabels ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -141,7 +141,7 @@ export default function DetailControls({
             <span className="text-[11px] font-semibold text-gray-400 group-hover:text-red-300 transition-colors">🔍 Show Bounding Boxes</span>
             <button 
               onClick={() => setDebugMode(!debugMode)}
-              className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${debugMode ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/10'}`}
+              className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${debugMode ? 'bg-[#1877F2]' : 'bg-white/10'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 ${debugMode ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>

@@ -217,8 +217,8 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
           disabled={!isValidToExport || isExporting}
           className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
             (!isValidToExport || isExporting)
-              ? 'bg-gray-800 text-gray-500 cursor-not-allowed shadow-none'
-              : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.25)] hover:shadow-[0_0_40px_rgba(168,85,247,0.6)] hover:-translate-y-1'
+              ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+              : 'bg-white/10 hover:bg-[#1877F2] text-white hover:-translate-y-1'
           }`}
         >
           {isExporting ? (
@@ -242,7 +242,7 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
           className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all border flex items-center justify-center gap-2 shadow-lg ${
             (!isValidToExport || isExporting)
               ? 'bg-transparent border-gray-800 text-gray-700 cursor-not-allowed hidden'
-              : 'bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-orange-500/30 text-orange-400 hover:from-orange-500/20 hover:to-pink-500/20 hover:border-orange-500/60 shadow-[0_0_15px_rgba(249,115,22,0.1)] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] hover:-translate-y-0.5'
+              : 'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20 hover:border-orange-500/50 hover:-translate-y-0.5'
           }`}
           title={`Generates all ${Object.keys(mapStyles).length} distinct aesthetic variations in one MEGA ZIP.`}
         >

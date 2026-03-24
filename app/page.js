@@ -169,8 +169,8 @@ export default function Home() {
       
       {/* Dynamic Background Gradients */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-[800px] h-[800px] bg-purple-900/10 rounded-full blur-[200px]" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[150px]" />
+        <div className="absolute top-0 right-1/4 w-[800px] h-[800px] bg-white/[0.02] rounded-full blur-[200px]" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-white/[0.02] rounded-full blur-[150px]" />
       </div>
 
       {/* MACRO CONTROL CENTER - 3 COLUMN LAYOUT */}
@@ -182,7 +182,7 @@ export default function Home() {
           <div className="px-5 py-5 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent shrink-0">
             <div className="flex items-center justify-between mb-4 mt-2">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <div className="w-8 h-8 rounded-lg bg-[#1877F2] flex items-center justify-center">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" opacity="0.9"/>
                     <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" opacity="0.6"/>
@@ -239,7 +239,7 @@ export default function Home() {
                            Enable Pencil Tool
                         </span>
                      </div>
-                     <div className={`w-10 h-5 rounded-full p-1 transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'bg-blue-500' : 'bg-white/10'} `}>
+                     <div className={`w-10 h-5 rounded-full p-1 transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'bg-[#1877F2]' : 'bg-white/10'} `}>
                          <div className={`w-3 h-3 rounded-full bg-white transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'translate-x-5' : ''}`} />
                      </div>
                   </button>
@@ -296,7 +296,7 @@ export default function Home() {
                            setActiveAtomId(seedId);
                          }
                        }}
-                       className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showAtom ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10 hover:bg-white/20'}`}
+                       className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showAtom ? 'bg-[#1877F2]' : 'bg-white/10 hover:bg-white/20'}`}
                      >
                        <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform duration-300 ${showAtom ? 'translate-x-5' : 'translate-x-0'}`} />
                      </button>
