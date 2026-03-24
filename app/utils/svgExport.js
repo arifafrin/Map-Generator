@@ -230,29 +230,47 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
       
       const subGroups = Array.from(mapRegionsGroup.children);
       subGroups.forEach((subG, groupIndex) => {
-          // Keep the existing group which holds critical translation transforms!
-          const newG = subG.cloneNode(false); // shallow clone `<g>`
-          if (!newG.getAttribute('id')) newG.setAttribute('id', `region-cluster-${groupIndex}`);
-          
-          const regionPaths = Array.from(subG.querySelectorAll('path'));
-          regionPaths.forEach((path, index) => {
-            const titleEl = path.querySelector('title');
-            const regionName = titleEl ? titleEl.textContent : `region-${index + 1}`;
-            if (titleEl) titleEl.remove();
-            
-            // Strip data-* attributes from path
-            Array.from(path.attributes).forEach(attr => {
-               if(attr.name.startsWith('data-')) path.removeAttribute(attr.name);
-            });
+          if (subG.tagName.toLowerCase() === 'path') {
+              // Handle custom drawn pencil paths which are direct root children
+              const titleEl = subG.querySelector('title');
+              const regionName = titleEl ? titleEl.textContent : `custom-shape-${groupIndex}`;
+              if (titleEl) titleEl.remove();
+              
+              Array.from(subG.attributes).forEach(attr => {
+                 if(attr.name.startsWith('data-')) subG.removeAttribute(attr.name);
+              });
+              if (!subG.getAttribute('id')) subG.setAttribute('id', sanitizeId(regionName));
+              
+              const pLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+              pLayer.setAttribute('id', `layer-${sanitizeId(regionName)}`);
+              pLayer.appendChild(subG);
+              regionGroupOut.appendChild(pLayer);
+              
+          } else if (subG.tagName.toLowerCase() === 'g') {
+              // Keep the existing group which holds critical translation transforms!
+              const newG = subG.cloneNode(false); // shallow clone `<g>`
+              if (!newG.getAttribute('id')) newG.setAttribute('id', `region-cluster-${groupIndex}`);
+              
+              const regionPaths = Array.from(subG.querySelectorAll('path'));
+              regionPaths.forEach((path, index) => {
+                const titleEl = path.querySelector('title');
+                const regionName = titleEl ? titleEl.textContent : `region-${index + 1}`;
+                if (titleEl) titleEl.remove();
+                
+                // Strip data-* attributes from path
+                Array.from(path.attributes).forEach(attr => {
+                   if(attr.name.startsWith('data-')) path.removeAttribute(attr.name);
+                });
 
-            if (!path.getAttribute('id')) path.setAttribute('id', sanitizeId(regionName));
-            
-            const pLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            pLayer.setAttribute('id', `layer-${sanitizeId(regionName)}`);
-            pLayer.appendChild(path);
-            newG.appendChild(pLayer);
-          });
-          regionGroupOut.appendChild(newG);
+                if (!path.getAttribute('id')) path.setAttribute('id', sanitizeId(regionName));
+                
+                const pLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                pLayer.setAttribute('id', `layer-${sanitizeId(regionName)}`);
+                pLayer.appendChild(path);
+                newG.appendChild(pLayer);
+              });
+              regionGroupOut.appendChild(newG);
+          }
       });
       mainGroup.appendChild(regionGroupOut);
   }
