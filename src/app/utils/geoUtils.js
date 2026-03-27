@@ -242,14 +242,18 @@ function processWorldMap(features, width, height, padding, colors, styleConfig, 
     centerY: (bounds[0][1] + bounds[1][1]) / 2,
   };
 
-  const paths = features.map((feature, index) => ({
-    d: pathGen(feature),
-    name: getFeatureName(feature, index),
-    id: getFeatureId(feature, index),
-    index,
-    fillColor: getColor(index, colors, styleConfig),
-    centroid: getProjectedCentroid(feature, projection),
-  }));
+  const paths = features.map((feature, index) => {
+    const d = pathGen(feature);
+    return {
+      d,
+      name: getFeatureName(feature, index),
+      id: getFeatureId(feature, index),
+      index,
+      fillColor: getColor(index, colors, styleConfig),
+      centroid: getProjectedCentroid(feature, projection),
+      bounds: getPathBounds(d),
+    };
+  });
 
   return {
     groups: [{ id: 'world', label: 'World Map', paths }],
@@ -310,6 +314,19 @@ function processStandard(features, width, height, padding, colors, styleConfig, 
       y: rawCentroid.y + visualOffsetY
     } : null;
 
+    // Compute path bounds and apply same visual offset correction
+    const rawBounds = getPathBounds(d);
+    const correctedBounds = rawBounds ? {
+      minX: rawBounds.minX + visualOffsetX,
+      minY: rawBounds.minY + visualOffsetY,
+      maxX: rawBounds.maxX + visualOffsetX,
+      maxY: rawBounds.maxY + visualOffsetY,
+      centerX: rawBounds.centerX + visualOffsetX,
+      centerY: rawBounds.centerY + visualOffsetY,
+      shapeW: rawBounds.shapeW,
+      shapeH: rawBounds.shapeH,
+    } : null;
+
     return {
       d,
       name: getFeatureName(feature, index),
@@ -317,6 +334,7 @@ function processStandard(features, width, height, padding, colors, styleConfig, 
       index,
       fillColor: getColor(index, colors, styleConfig),
       centroid: correctedCentroid,
+      bounds: correctedBounds,
     };
   });
 
@@ -345,13 +363,15 @@ function processUSA(features, width, height, padding, colors, styleConfig, inclu
     const pathGen = geoPath().projection(projection);
     return groupFeatures.map((feature, localIndex) => {
       const globalIndex = globalIndexStart + localIndex;
+      const d = pathGen(feature);
       return {
-        d: pathGen(feature),
+        d,
         name: getFeatureName(feature, globalIndex),
         id: getFeatureId(feature, globalIndex),
         index: globalIndex,
         fillColor: getColor(globalIndex, colors, styleConfig),
         centroid: getProjectedCentroid(feature, projection),
+        bounds: getPathBounds(d),
       };
     });
   };
@@ -388,6 +408,36 @@ function processUSA(features, width, height, padding, colors, styleConfig, inclu
 }
 
 // --- Utility helpers ---
+
+/**
+ * Extract pixel-space bounding box from a projected SVG `d` string.
+ * Filters out degenerate near-zero points (x<1 AND y<1) which are invisible
+ * artefacts at origin that inflate the halftone bounding box.
+ */
+function getPathBounds(d) {
+  if (!d) return null;
+  const matches = d.match(/[ML]\s*(-?[\d.]+)[,\s]+(-?[\d.]+)/g);
+  if (!matches || matches.length === 0) return null;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let validPoints = 0;
+  for (let i = 0; i < matches.length; i++) {
+    const coords = matches[i].match(/-?[\d.]+/g);
+    if (!coords || coords.length < 2) continue;
+    const x = parseFloat(coords[0]);
+    const y = parseFloat(coords[1]);
+    // Skip degenerate near-origin points that are invisible SVG artefacts
+    if (Math.abs(x) < 1 && Math.abs(y) < 1) continue;
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+    validPoints++;
+  }
+  if (validPoints === 0) return null;
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  return { minX, minY, maxX, maxY, centerX, centerY, shapeW: maxX - minX, shapeH: maxY - minY };
+}
 
 function getFeatureName(feature, index) {
   return feature.properties?.name || 

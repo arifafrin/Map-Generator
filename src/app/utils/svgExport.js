@@ -234,6 +234,11 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
       const subGroups = Array.from(mapRegionsGroup.children);
       subGroups.forEach((subG, groupIndex) => {
           if (subG.tagName.toLowerCase() === 'path') {
+              // SKIP: live-draw-path is a UI-only pencil preview element with d="" — it must never be exported.
+              // Also skip any path with an empty or missing `d` attribute (zero-size ghost at origin).
+              const dAttr = subG.getAttribute('d') || '';
+              if (subG.getAttribute('id') === 'live-draw-path' || dAttr.trim() === '') return;
+
               // Handle custom drawn pencil paths which are direct root children
               const titleEl = subG.querySelector('title');
               const regionName = titleEl ? titleEl.textContent : `custom-shape-${groupIndex}`;
@@ -254,30 +259,67 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
               const newG = subG.cloneNode(false); // shallow clone `<g>`
               if (!newG.getAttribute('id')) newG.setAttribute('id', `region-cluster-${groupIndex}`);
               
-              const regionPaths = Array.from(subG.querySelectorAll('path'));
-              regionPaths.forEach((path, index) => {
+              // MapPreview.renderPath() wraps each region in an anonymous <g> (no id, or React key-only).
+              // We must detect these wrappers and unwrap them, else the restructuring can't find paths
+              // or radial-halftone groups (they are nested one level deeper than the old flat structure).
+              
+              // Helper: process one path + optional radial-halftone group
+              const processPathEl = (path, index) => {
                 const titleEl = path.querySelector('title');
                 const regionName = titleEl ? titleEl.textContent : `region-${index + 1}`;
                 if (titleEl) titleEl.remove();
-                
-                // Strip data-* attributes from path
                 Array.from(path.attributes).forEach(attr => {
-                   if(attr.name.startsWith('data-')) path.removeAttribute(attr.name);
+                   if (attr.name.startsWith('data-')) path.removeAttribute(attr.name);
                 });
-
                 if (!path.getAttribute('id')) path.setAttribute('id', sanitizeId(regionName));
-                
+
+                // Skip purely-invisible base paths (transparent fill+stroke) — these are the radial
+                // halftone placeholders that inflate the bounding box. ONLY skip when the sibling
+                // radial-halftone group already provides the visual content.
+                const hasSiblingHalftone = path.parentElement &&
+                    Array.from(path.parentElement.children).some(c =>
+                        c !== path && c.tagName && c.tagName.toLowerCase() === 'g' &&
+                        (c.getAttribute('id') || '').startsWith('radial-halftone-')
+                    );
+                const fill = path.getAttribute('fill');
+                const stroke = path.getAttribute('stroke');
+                const isFillInvis = !fill || fill === 'none' || fill === 'transparent';
+                const isStrokeInvis = !stroke || stroke === 'none' || stroke === 'transparent';
+                if (isFillInvis && isStrokeInvis && hasSiblingHalftone) return; // skip ghost path
+
                 const pLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 pLayer.setAttribute('id', `layer-${sanitizeId(regionName)}`);
                 pLayer.appendChild(path);
                 newG.appendChild(pLayer);
+              };
+
+              let pathIndex = 0;
+              Array.from(subG.children).forEach(child => {
+                  const tag = child.tagName ? child.tagName.toLowerCase() : '';
+                  if (tag === 'path') {
+                      // Legacy flat structure: direct path child
+                      processPathEl(child, pathIndex++);
+                  } else if (tag === 'g') {
+                      const childId = child.getAttribute('id') || '';
+                      if (childId.startsWith('radial-halftone-') || child.getAttribute('clip-path') || child.getAttribute('clipPath')) {
+                          // Direct halftone/clipped group — keep as-is
+                          newG.appendChild(child);
+                      } else {
+                          // Anonymous renderPath wrapper — unwrap its contents
+                          Array.from(child.children).forEach(inner => {
+                              const innerTag = inner.tagName ? inner.tagName.toLowerCase() : '';
+                              if (innerTag === 'path') {
+                                  processPathEl(inner, pathIndex++);
+                              } else if (innerTag === 'g') {
+                                  const innerId = inner.getAttribute('id') || '';
+                                  if (innerId.startsWith('radial-halftone-') || inner.getAttribute('clip-path') || inner.getAttribute('clipPath')) {
+                                      newG.appendChild(inner);
+                                  }
+                              }
+                          });
+                      }
+                  }
               });
-              
-              // Preserve clipped non-path groups (e.g., radial halftone dot groups)
-              const clippedGroups = Array.from(subG.children).filter(
-                  c => c.tagName && c.tagName.toLowerCase() === 'g' && (c.getAttribute('clip-path') || c.getAttribute('clipPath'))
-              );
-              clippedGroups.forEach(cg => newG.appendChild(cg));
               
               regionGroupOut.appendChild(newG);
           }
@@ -460,11 +502,24 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
               c => c !== shape && c.getAttribute && (c.getAttribute('clip-path') || c.getAttribute('clipPath'))
           );
       
-      // If filling is explicitly 'none' and it has absolutely no border stroke, it is an invisible bounding trace.
-      if (fill === 'none' && (!stroke || stroke === 'none' || stroke === 'transparent') && !hasClippedSibling) {
+      // If both filling and stroke are explicitly invisible/none, it is an obsolete bounding trace.
+      const isFillInvisible = (!fill || fill === 'none' || fill === 'transparent');
+      const isStrokeInvisible = (!stroke || stroke === 'none' || stroke === 'transparent');
+      
+      if (isFillInvisible && isStrokeInvisible && !hasClippedSibling) {
           shape.remove();
       }
   });
+
+  // 3. Sweep and eradicate any empty <g> elements left behind by deleted paths.
+  // Illustrator will register an empty `<g>` as an invisible selectable object artifact.
+  const allGroups = Array.from(clone.querySelectorAll('g'));
+  for (let i = allGroups.length - 1; i >= 0; i--) {
+      const g = allGroups[i];
+      if (g.childElementCount === 0) {
+          g.remove();
+      }
+  }
 
   // 6. Serialize & Format
   const serializer = new XMLSerializer();

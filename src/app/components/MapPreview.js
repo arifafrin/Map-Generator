@@ -579,8 +579,29 @@ export default memo(function MapPreview({
 
     // RENDER RADIAL HALFTONE GRID
     let radialDots = null;
-    if (styleConfig.isRadialDotted && path.bounds) {
-       const b = path.bounds;
+    // Resolve the bounding box for this path.
+    // path.bounds is pre-computed by geoUtils.js with degenerate near-(0,0) points already filtered.
+    // For pencil-drawn paths, fall back to parsing path.d with the same filter applied inline.
+    let hBounds = path.bounds;
+    if (!hBounds && styleConfig.isRadialDotted && path.d) {
+       const fallbackMatches = path.d.match(/[ML]\s*(-?[\d.]+)[,\s]+(-?[\d.]+)/g);
+       if (fallbackMatches) {
+           let fMinX = Infinity, fMinY = Infinity, fMaxX = -Infinity, fMaxY = -Infinity, fCount = 0;
+           fallbackMatches.forEach(m => {
+               const c = m.match(/-?[\d.]+/g);
+               if (!c || c.length < 2) return;
+               const fx = parseFloat(c[0]), fy = parseFloat(c[1]);
+               // Skip degenerate near-origin artefact points that inflate the bounding box
+               if (Math.abs(fx) < 1 && Math.abs(fy) < 1) return;
+               if (fx < fMinX) fMinX = fx; if (fy < fMinY) fMinY = fy;
+               if (fx > fMaxX) fMaxX = fx; if (fy > fMaxY) fMaxY = fy;
+               fCount++;
+           });
+           if (fCount > 0) hBounds = { minX: fMinX, minY: fMinY, maxX: fMaxX, maxY: fMaxY };
+       }
+    }
+    if (styleConfig.isRadialDotted && hBounds) {
+       const b = hBounds;
        const cx = (b.minX + b.maxX) / 2;
        const cy = (b.minY + b.maxY) / 2;
        const maxDist = Math.hypot(b.maxX - cx, b.maxY - cy);
