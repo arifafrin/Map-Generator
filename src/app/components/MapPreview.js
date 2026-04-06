@@ -34,7 +34,10 @@ export default memo(function MapPreview({
   pinSize = 36,
   pinColor = '#ef4444',
   countryIso2 = null,
-  clearDrawingsTrigger = 0
+  clearDrawingsTrigger = 0,
+  animationEnabled = false,
+  animationStyle = 'reveal',
+  animationSpeed = 1
 }) {
   const svgRef = useRef(null);
   const [hoveredRegion, setHoveredRegion] = useState(null);
@@ -669,10 +672,15 @@ export default memo(function MapPreview({
        radialDots = <g id={`radial-halftone-${path.id}`}>{dots}</g>;
     }
 
+    // Animation class and delay computation
+    const animClass = animationEnabled ? `map-anim-${animationStyle}` : '';
+    const animDelay = animationEnabled ? `${(globalIdx * 0.05) / animationSpeed}s` : '0s';
+    const animSpeedVar = animationEnabled ? `${(1 / animationSpeed).toFixed(2)}s` : '1s';
+
     return (
-      <g key={`group-${path.index}`}>
+      <g key={`group-${path.index}-${animationStyle}-${animationEnabled ? 'on' : 'off'}`}>
         <path
-        key={`path-${path.index}`}
+        key={`path-${path.index}-${animationStyle}-${animationEnabled ? 'on' : 'off'}`}
         id={path.id}
         d={path.d}
         fill={displayFill}
@@ -681,10 +689,13 @@ export default memo(function MapPreview({
         vectorEffect="non-scaling-stroke"
         strokeLinejoin="round"
         strokeLinecap="round"
-        className="transition-all duration-300 cursor-pointer"
+        className={`transition-all duration-300 cursor-pointer ${animClass}`}
         style={{
-          opacity: (isHovered && !styleConfig.glow && !isDrawn) ? 0.85 : 1,
-          filter: filterUrl,
+          opacity: animationEnabled ? undefined : ((isHovered && !styleConfig.glow && !isDrawn) ? 0.85 : 1),
+          filter: filterUrl !== 'none' ? filterUrl : undefined,
+          animationDelay: animDelay,
+          '--anim-speed': animSpeedVar,
+          ...(animationEnabled && animationStyle === 'draw' ? { strokeDasharray: '2000', strokeDashoffset: '2000' } : {}),
         }}
         onMouseEnter={!isDrawn ? () => setHoveredRegion(path.index) : undefined}
         onMouseLeave={!isDrawn ? () => setHoveredRegion(null) : undefined}

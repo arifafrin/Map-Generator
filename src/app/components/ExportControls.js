@@ -2,13 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { downloadSVGFile, generatePNGBlob, buildStockReadySVG, downloadZIPPackage } from '../utils/svgExport';
+import { renderMapAnimationOptions } from '../utils/videoExport';
 import { generateMetadataSet } from '../utils/seoUtils';
 import { mapStyles, aiColorThemes } from '../utils/colorUtils';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 
-export default function ExportControls({ svgRef, geoData, countryName, selectedStyle, hasLabels, bgMode, customBgColor }) {
+export default function ExportControls({ 
+  svgRef, geoData, countryName, selectedStyle, hasLabels, bgMode, customBgColor,
+  animationEnabled, animationStyle, animationSpeed
+}) {
   const [isExporting, setIsExporting] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [exportedSignatures, setExportedSignatures] = useState(new Set());
@@ -114,6 +119,33 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
      setIsExporting(false);
   };
   
+  // 3.5 Handle 4K Video Animation Export
+  const handleVideoExport = async (durationSec = 5) => {
+     const svgEl = validateMapStatus();
+     if (!svgEl) return;
+     
+     setIsExporting(true);
+     setVideoProgress({ frame: 0, total: durationSec * 60, percent: 0 });
+     
+     try {
+       const blob = await renderMapAnimationOptions(svgEl, {
+          durationSec,
+          animationStyle,
+          animationSpeed,
+          bgColor: bgMode === 'transparent' ? '#ffffff' : (customBgColor || mapStyles[selectedStyle]?.background || '#0a1628'),
+          onProgress: (prog) => setVideoProgress(prog)
+       });
+       
+       saveAs(blob, `${getSaneFileName()}-animation-${animationStyle}.mp4`);
+     } catch(e) {
+       console.error("Video render failed", e);
+       alert("Video rendering failed. Please check the console.");
+     } finally {
+       setIsExporting(false);
+       setVideoProgress(null);
+     }
+  };
+
   // 4. Handle Bulk Generation (10 Variations MEGA ZIP)
   const handleBulkExport = async () => {
      const svgEl = validateMapStatus();
@@ -206,6 +238,23 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
             <button onClick={() => { setIsOpen(false); handleStockZipExport(); }} className="py-3 px-4 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-left text-[11px] font-bold uppercase tracking-wider text-gray-200 transition-colors flex items-center gap-3 border border-emerald-500/10">
               <span className="text-emerald-400 text-lg">📦</span> Download Both (ZIP)
             </button>
+            {animationEnabled && (
+                <div className="pt-2 mt-2 border-t border-white/10 flex flex-col gap-1">
+                  <span className="text-[9px] uppercase px-2 mb-1 text-violet-400 font-bold tracking-widest">Video Outputs</span>
+                  <button onClick={() => { setIsOpen(false); handleVideoExport(5); }} className="py-3 px-4 rounded-lg bg-violet-500/10 hover:bg-violet-500/30 text-left text-[11px] font-bold uppercase tracking-wider text-violet-200 transition-colors flex items-center justify-between border border-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.15)] group">
+                    <div className="flex items-center gap-3">
+                      <span className="text-violet-400 text-lg group-hover:scale-110 transition-transform">🎥</span> 4K Animation (MP4)
+                    </div>
+                    <span className="text-[9px] font-mono text-violet-300 bg-violet-500/20 px-1.5 py-0.5 rounded">5s</span>
+                  </button>
+                  <button onClick={() => { setIsOpen(false); handleVideoExport(10); }} className="py-2 px-4 rounded-lg bg-violet-500/5 hover:bg-violet-500/20 text-left text-[10px] font-bold uppercase tracking-wider text-violet-300 transition-colors flex items-center justify-between border border-violet-500/10">
+                    <div className="flex items-center gap-3">
+                      <span className="text-violet-500/50 text-base">⏱️</span> 4K Animation (Extended)
+                    </div>
+                    <span className="text-[9px] font-mono text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded">10s</span>
+                  </button>
+                </div>
+            )}
           </div>
         )}
 
@@ -223,8 +272,27 @@ export default function ExportControls({ svgRef, geoData, countryName, selectedS
         >
           {isExporting ? (
             <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-               Exporting...
+              {videoProgress && !videoProgress.finishing ? (
+                 <div className="flex flex-col items-center gap-1 w-full px-4">
+                    <div className="flex justify-between w-full text-[9px] font-mono text-violet-300">
+                      <span>Rendering 4K MP4</span>
+                      <span>{videoProgress.percent}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden">
+                       <div className="h-full bg-violet-500 transition-all duration-75" style={{ width: `${videoProgress.percent}%` }}></div>
+                    </div>
+                 </div>
+              ) : videoProgress && videoProgress.finishing ? (
+                 <>
+                    <div className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
+                    Finishing MP4...
+                 </>
+              ) : (
+                 <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Exporting...
+                 </>
+              )}
             </>
           ) : (
             <>

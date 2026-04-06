@@ -19,7 +19,10 @@ export default function DetailControls({
   pinEnabled, setPinEnabled,
   pinSize, setPinSize,
   pinColor, setPinColor,
-  selectedStyle
+  selectedStyle,
+  animationEnabled, setAnimationEnabled,
+  animationStyle, setAnimationStyle,
+  animationSpeed, setAnimationSpeed
 }) {
   const activeAtom = atomPositions?.find(a => a.id === activeAtomId) || atomPositions?.[0] || { x: 50, y: 50 };
   const atomX = activeAtom.x;
@@ -218,6 +221,80 @@ export default function DetailControls({
         )}
       </div>
       )}
+
+      {/* ═══ MAP ANIMATION CONTROLS ═══ */}
+      <div className={`transition-all duration-500 border rounded-xl p-4 shadow-xl backdrop-blur-xl relative overflow-hidden group ${animationEnabled ? 'bg-gradient-to-b from-violet-500/10 to-fuchsia-500/5 border-violet-500/30 shadow-[0_0_25px_rgba(139,92,246,0.1)]' : 'bg-gradient-to-b from-white/[0.05] to-transparent border-white/10 border-t-white/20'}`}>
+        <div className={`absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-400/50 to-transparent transition-opacity duration-700 ${animationEnabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}></div>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🎬</span>
+            <div>
+              <span className={`text-[11px] font-bold block tracking-wide ${animationEnabled ? 'text-violet-300' : 'text-gray-300'}`}>Map Animation</span>
+              <span className="text-[9px] text-gray-500 block mt-0.5">Animate map regions live</span>
+            </div>
+          </div>
+          <button 
+            onClick={() => setAnimationEnabled && setAnimationEnabled(!animationEnabled)}
+            className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${animationEnabled ? 'bg-violet-500' : 'bg-white/10 hover:bg-white/20'}`}
+          >
+            <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform duration-300 ${animationEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+        </div>
+
+        {animationEnabled && (
+          <div className="mt-5 space-y-5 animate-fade-in pb-1">
+            
+            {/* Animation Style Selector */}
+            <div>
+              <p className="text-[11px] font-semibold text-gray-300 tracking-wide mb-2.5">Animation Style</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: 'assemble',   icon: '🧩', label: 'Assemble' },
+                  { id: 'reveal',     icon: '✨', label: 'Reveal' },
+                  { id: 'pulse',      icon: '💫', label: 'Pulse' },
+                  { id: 'wave',       icon: '🌊', label: 'Wave' },
+                  { id: 'draw',       icon: '✏️', label: 'Draw' },
+                  { id: 'breathe',    icon: '🫧', label: 'Breathe' },
+                  { id: 'radar',      icon: '📡', label: 'Radar' },
+                  { id: 'colorshift', icon: '🎨', label: 'Shift' },
+                  { id: 'float',      icon: '🎈', label: 'Float' },
+                ].map(anim => (
+                  <button
+                    key={anim.id}
+                    onClick={() => setAnimationStyle && setAnimationStyle(anim.id)}
+                    className={`py-2 flex flex-col items-center justify-center rounded-lg transition-all duration-200 border ${
+                      animationStyle === anim.id 
+                        ? 'bg-violet-500/20 border-violet-500/40 text-violet-200 shadow-[0_0_12px_rgba(139,92,246,0.2)]' 
+                        : 'bg-black/20 text-gray-500 hover:text-gray-300 border-white/5 hover:bg-white/5 hover:border-white/15'
+                    }`}
+                  >
+                    <span className="text-sm leading-none mb-1">{anim.icon}</span>
+                    <span className="text-[8px] uppercase font-bold tracking-wider">{anim.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Animation Speed Slider */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-[11px] font-semibold text-gray-300 tracking-wide">Speed</p>
+                <span className="text-[10px] font-mono text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded">{animationSpeed.toFixed(1)}x</span>
+              </div>
+              <input 
+                type="range" min="0.2" max="3" step="0.1" 
+                value={animationSpeed}
+                onChange={(e) => setAnimationSpeed && setAnimationSpeed(parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-black/40 rounded-lg appearance-none cursor-pointer border border-white/5 accent-violet-500 outline-none hover:bg-black/60 transition-colors"
+              />
+              <div className="flex justify-between text-[8.5px] text-gray-600 mt-1.5 font-bold uppercase tracking-widest">
+                <span>Slow</span><span>Fast</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Location Pin Controls */}
       <div className={`transition-all duration-500 border border-white/5 rounded-xl p-4 shadow-sm backdrop-blur-md ${pinEnabled ? 'bg-[#1877F2]/5 border-[#1877F2]/20' : 'bg-white/[0.03]'}`}>

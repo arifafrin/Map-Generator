@@ -36,6 +36,11 @@ export default function Home() {
   const [pinSize, setPinSize] = useState(36);
   const [pinColor, setPinColor] = useState('#ef4444');
 
+  // Map Animation State
+  const [animationEnabled, setAnimationEnabled] = useState(false);
+  const [animationStyle, setAnimationStyle] = useState('reveal'); // reveal, pulse, wave, draw, breathe, radar, colorshift, float
+  const [animationSpeed, setAnimationSpeed] = useState(1); // 0.5x to 3x multiplier
+
   // Atom Settings State (for Network style)
   const [showAtom, setShowAtom] = useState(false);
   const [atomPositions, setAtomPositions] = useState([]); 
@@ -349,6 +354,9 @@ export default function Home() {
               hasLabels={showLabels}
               bgMode={bgMode}
               customBgColor={customBgColor}
+              animationEnabled={animationEnabled}
+              animationStyle={animationStyle}
+              animationSpeed={animationSpeed}
             />
           </div>
           
@@ -409,6 +417,9 @@ export default function Home() {
                pinEnabled={pinEnabled} setPinEnabled={setPinEnabled}
                pinSize={pinSize} setPinSize={setPinSize}
                selectedStyle={selectedStyle}
+               animationEnabled={animationEnabled} setAnimationEnabled={setAnimationEnabled}
+               animationStyle={animationStyle} setAnimationStyle={setAnimationStyle}
+               animationSpeed={animationSpeed} setAnimationSpeed={setAnimationSpeed}
              />
           </div>
         </aside>
@@ -492,6 +503,9 @@ export default function Home() {
                   pinColor={pinColor}
                   countryIso2={countryIso2}
                   clearDrawingsTrigger={clearDrawingsTrigger}
+                  animationEnabled={animationEnabled}
+                  animationStyle={animationStyle}
+                  animationSpeed={animationSpeed}
                 />
              </div>
           ) : null}
