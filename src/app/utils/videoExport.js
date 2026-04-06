@@ -62,6 +62,10 @@ export async function renderMapAnimationOptions(svgNode, config) {
       clone.setAttribute('height', height);
       const originalViewBox = clone.getAttribute('viewBox') || `0 0 ${width} ${height}`;
       
+      // CRITICAL: Force 16:9 aspect ratio for true 4K HD video output
+      // The map content is centered within the 16:9 frame using xMidYMid meet
+      clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      
       // Set up WebCodecs and Muxer
       let muxer = new Mp4Muxer.Muxer({
         target: new Mp4Muxer.ArrayBufferTarget(),
