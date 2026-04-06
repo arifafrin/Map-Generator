@@ -284,14 +284,14 @@ export default function ExportControls({
                  </div>
               ) : videoProgress && videoProgress.finishing ? (
                  <>
-                    <div className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
-                    Finishing MP4...
-                 </>
+                     <div className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
+                     Encoding Video...
+                  </>
               ) : (
                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Exporting...
-                 </>
+                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                     Saving...
+                  </>
               )}
             </>
           ) : (
@@ -299,7 +299,7 @@ export default function ExportControls({
               <svg className="w-5 h-5 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Export
+              Download Map
             </>
           )}
         </button>
@@ -314,8 +314,8 @@ export default function ExportControls({
           }`}
           title={`Generates all ${Object.keys(mapStyles).length} distinct aesthetic variations in one MEGA ZIP.`}
         >
-          <span className="text-xl -mt-1">🚀</span>
-          Generate {Object.keys(mapStyles).length} Styles
+          <span className="text-xl -mt-1">📦</span>
+          Download All Styles
         </button>
       </div>
     </div>

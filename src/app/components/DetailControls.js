@@ -51,7 +51,7 @@ export default function DetailControls({
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-1">
         <label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-          Details & Layout
+          Map Settings & Tweaks
         </label>
       </div>
 
@@ -59,7 +59,7 @@ export default function DetailControls({
       <div className="bg-gradient-to-b from-white/[0.05] to-transparent border border-white/10 border-t-white/20 rounded-xl p-4 shadow-xl backdrop-blur-xl relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
         <h3 className="text-[11px] uppercase text-gray-400 font-bold mb-3 flex items-center gap-2">
-          <span className="text-sm">🖼️</span> Workspace Layout
+          <span className="text-sm">🖼️</span> Canvas Shape
         </h3>
         
         <div className="space-y-4">
@@ -93,8 +93,8 @@ export default function DetailControls({
           {/* PREMIUM STOCK AUTOMATION TOGGLES */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)] transition-all hover:bg-emerald-500/10">
             <div>
-               <span className="text-[11px] font-bold text-emerald-400 block tracking-wide">Clean Export Mode</span>
-               <span className="text-[9px] text-emerald-500/60 block mt-0.5">Prevents edges from getting cut off during export</span>
+               <span className="text-[11px] font-bold text-emerald-400 block tracking-wide">Safe Borders Mode</span>
+               <span className="text-[9px] text-emerald-500/60 block mt-0.5">Prevents edges getting cut during export</span>
             </div>
             <button 
               onClick={() => {
@@ -110,7 +110,7 @@ export default function DetailControls({
 
           <div className="flex items-center justify-between py-1 group">
              <div>
-               <span className="text-[11px] font-semibold text-gray-300 block group-hover:text-white transition-colors">Show Small Islands</span>
+               <span className="text-[11px] font-semibold text-gray-300 block group-hover:text-white transition-colors">Include Small Islands</span>
                <span className="text-[9px] text-gray-500">Keep tiny shapes on the map</span>
              </div>
             <button 
@@ -122,7 +122,7 @@ export default function DetailControls({
           </div>
 
           <div className="flex items-center justify-between py-1 group">
-            <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show Country Name</span>
+            <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show Map Title</span>
             <button 
               onClick={() => setShowTitle(!showTitle)}
               className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showTitle ? 'bg-[#1877F2]' : 'bg-white/10'}`}
@@ -132,7 +132,7 @@ export default function DetailControls({
           </div>
 
           <div className="flex items-center justify-between py-1 group">
-            <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show State/Region Names</span>
+            <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">Show Region Labels</span>
             <button 
               onClick={() => setShowLabels(!showLabels)}
               className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${showLabels ? 'bg-[#1877F2]' : 'bg-white/10'}`}
@@ -142,7 +142,7 @@ export default function DetailControls({
           </div>
 
           <div className="flex items-center justify-between py-1 mt-2 pt-2 border-t border-white/5 group">
-            <span className="text-[11px] font-semibold text-gray-400 group-hover:text-red-300 transition-colors">🔍 Show Bounding Boxes</span>
+            <span className="text-[11px] font-semibold text-gray-400 group-hover:text-red-300 transition-colors">🔍 Show Boundary Frame</span>
             <button 
               onClick={() => setDebugMode(!debugMode)}
               className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${debugMode ? 'bg-[#1877F2]' : 'bg-white/10'}`}
@@ -158,7 +158,7 @@ export default function DetailControls({
       <div className="bg-gradient-to-b from-white/[0.05] to-transparent border border-white/10 border-t-white/20 rounded-xl p-4 shadow-xl backdrop-blur-xl relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
         <h3 className="text-[11px] uppercase text-gray-400 font-bold mb-4 flex items-center gap-2">
-          <span className="text-sm">📐</span> Map Detail Settings
+          <span className="text-sm">📐</span> Border & Line Styling
         </h3>
         
         <div className="mb-4">

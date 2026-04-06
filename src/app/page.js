@@ -195,8 +195,8 @@ export default function Home() {
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-sm font-bold tracking-wide text-white">Vector Map Generator</h1>
-                  <p className="text-[10px] text-purple-300 font-medium uppercase tracking-widest mt-0.5">Premium Edition</p>
+                  <h1 className="text-sm font-bold tracking-widest text-white">Map Studio Pro</h1>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Creator Edition</p>
                 </div>
               </div>
             </div>
@@ -216,16 +216,21 @@ export default function Home() {
                />
              </div>
              
-             {/* Custom Freehand Drawing Mode UI */}
-             <div className="pt-5 border-t border-white/5 animate-fade-in pb-4">
-                <div className="flex items-center justify-between mb-4">
-                   <label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                     Freehand Draw Mode
-                   </label>
-                   <span className="text-[9px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded uppercase">BETA</span>
-                </div>
+             {/* FREEHAND DRAW MODE CARD */}
+            <div className="py-5 border-b border-white/5 px-4 bg-white/[0.01]">
+               <div className="flex items-center justify-between mb-3 px-1">
+                 <h2 className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Custom Drawing</h2>
+                 <span className="text-[8px] uppercase tracking-widest bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Beta</span>
+               </div>
+               
+               <div className="bg-black/30 border border-white/10 rounded-xl p-3 shadow-inner">
+                  <div className="flex items-center justify-between">
+                     <span className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                       <span className="text-lg">✏️</span> Pencil Tool
+                     </span>
+                  </div>
                 
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 mt-4">
                   
                   {/* Custom Draw Toggle */}
                   <button 
@@ -240,9 +245,8 @@ export default function Home() {
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'bg-blue-500/20 border-blue-500/50 shadow-inner' : 'bg-white/5 border-white/10 hover:border-blue-500/30 hover:bg-white/10'} `}
                   >
                      <div className="flex items-center gap-3">
-                        <span className="text-xl">✏️</span>
                         <span className={`text-sm font-bold tracking-wide ${mapStyles[selectedStyle]?.isPencil ? 'text-blue-300' : 'text-gray-300'}`}>
-                           Enable Pencil Tool
+                           {mapStyles[selectedStyle]?.isPencil ? 'Disable Tool' : 'Enable Tool'}
                         </span>
                      </div>
                      <div className={`w-10 h-5 rounded-full p-1 transition-all duration-300 ${mapStyles[selectedStyle]?.isPencil ? 'bg-[#1877F2]' : 'bg-white/10'} `}>
@@ -269,6 +273,7 @@ export default function Home() {
                   </div>
                   
                 </div>
+             </div>
              </div>
 
              {/* Moved Atom Controls here to balance UI */}
@@ -369,10 +374,10 @@ export default function Home() {
         {/* COLUMN 2: COLORS */}
         <aside className="w-[320px] flex flex-col h-full border-r border-white/5 bg-[#08080c] animate-slide-in-right">
           <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01] shrink-0 flex justify-between items-center h-[72px]">
-             <div>
-                <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Colors</h2>
-                <p className="text-[10px] text-gray-600 mt-1 uppercase">Choose Your Colors</p>
-             </div>
+              <div>
+                 <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Choose Location</h2>
+                 <p className="text-[10px] text-gray-600 mt-0.5 uppercase mb-3">Select your targeted area</p>
+              </div>
              <button onClick={handleMagicMap} className="px-3 py-1.5 rounded-md bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-500/20 text-orange-400 hover:text-orange-300 text-[10px] font-bold uppercase transition-all flex items-center gap-1 active:scale-95" title="Randomize Colors & Layout">✨ Magic</button>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-5 pb-12">
@@ -393,9 +398,9 @@ export default function Home() {
 
         {/* COLUMN 3: DETAILS & EXPORT */}
         <aside className="w-[340px] flex flex-col h-full border-r border-white/5 bg-[#050508] animate-slide-in-right" style={{animationDelay: '100ms'}}>
-          <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01] shrink-0 h-[72px] flex flex-col justify-center">
-             <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Settings</h2>
-             <p className="text-[10px] text-gray-600 mt-1 uppercase">Customize Your Map</p>
+           <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01] shrink-0 h-[72px] flex flex-col justify-center">
+             <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Settings & Tweaks</h2>
+             <p className="text-[10px] text-gray-600 mt-1 uppercase">Customize your map geometry</p>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-5 pb-8 space-y-6">
              <DetailControls
