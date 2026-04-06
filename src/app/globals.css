@@ -143,17 +143,20 @@ input[type="color"]::-webkit-color-swatch {
 
 /* 7. COLOR SHIFT — Hue rotation */
 @keyframes mapColorShift {
-  0%   { filter: hue-rotate(0deg); }
-  50%  { filter: hue-rotate(60deg); }
-  100% { filter: hue-rotate(0deg); }
+  0%   { filter: hue-rotate(0deg) saturate(1.2); }
+  25%  { filter: hue-rotate(90deg) saturate(1.4); }
+  50%  { filter: hue-rotate(180deg) saturate(1.2); }
+  75%  { filter: hue-rotate(270deg) saturate(1.4); }
+  100% { filter: hue-rotate(360deg) saturate(1.2); }
 }
 
 /* 8. FLOAT — Gentle floating motion */
 @keyframes mapFloat {
-  0%, 100% { transform: translateY(0px); }
-  25%      { transform: translateY(-4px) rotate(0.3deg); }
-  50%      { transform: translateY(0px); }
-  75%      { transform: translateY(3px) rotate(-0.3deg); }
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  20%      { transform: translateY(-12px) rotate(1deg); }
+  40%      { transform: translateY(-4px) rotate(0.5deg); }
+  60%      { transform: translateY(-15px) rotate(-0.8deg); }
+  80%      { transform: translateY(-6px) rotate(-0.3deg); }
 }
 
 /* 9. ASSEMBLE — Map visible step by step, then pulses */
