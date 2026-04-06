@@ -780,7 +780,7 @@ export default memo(function MapPreview({
           <rect x={-transform.x / transform.k} y={-transform.y / transform.k} width={dimensions.width / transform.k} height={dimensions.height / transform.k} fill="transparent" />
           {/* Blueprint grid background — renders engineering paper texture */}
           {styleConfig.isBlueprint && (
-            <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#blueprintGrid)" />
+            <rect id="blueprint-grid-overlay" x="-5000" y="-5000" width="10000" height="10000" fill="url(#blueprintGrid)" />
           )}
 
           {/* Render each group (mainland, alaska, hawaii for USA — or single group for others) */}

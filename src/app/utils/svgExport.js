@@ -227,6 +227,24 @@ export async function buildStockReadySVG(svgElement, countryName, options = { st
 
   // Extract regions group (Preserving structural transforms!)
   const mapRegionsGroup = clone.querySelector('#map-regions');
+  
+  // === BLUEPRINT GRID OVERLAY EXTRACTION ===
+  // The blueprint grid rect lives outside #map-regions in the DOM tree (it's a sibling  
+  // in the pan/zoom transform group). We must extract it separately and inject it into
+  // the export as a properly bounded background layer beneath the map regions.
+  const blueprintGridRect = clone.querySelector('#blueprint-grid-overlay');
+  if (blueprintGridRect) {
+      const vb = (clone.getAttribute('viewBox') || '0 0 800 600').trim().split(/[\s,]+/);
+      const bpGrid = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bpGrid.setAttribute('x', vb[0] || '0');
+      bpGrid.setAttribute('y', vb[1] || '0');
+      bpGrid.setAttribute('width', vb[2] || '800');
+      bpGrid.setAttribute('height', vb[3] || '600');
+      bpGrid.setAttribute('fill', 'url(#blueprintGrid)');
+      bpGrid.setAttribute('id', 'Blueprint-Grid');
+      mainGroup.appendChild(bpGrid);
+  }
+  
   if (mapRegionsGroup) {
       const regionGroupOut = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       regionGroupOut.setAttribute('id', 'map-group'); // User requested distinct map group
